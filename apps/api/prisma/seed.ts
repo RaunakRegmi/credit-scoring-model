@@ -17,10 +17,12 @@ import { Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 
 import { AppModule } from '../src/app.module';
+import { APP_CONFIG, type AppConfig } from '../src/config/configuration';
 import { CreditAssessmentService } from '../src/credit-assessment/credit-assessment.service';
 import { PrismaService } from '../src/prisma/prisma.service';
 
 import { FIXTURE_PROFILES } from './fixtures/generate-fixtures';
+import { seedBootstrapAdmin } from './seed-staff';
 
 import type { DocumentType, ResidenceStatus } from '@aics/contracts';
 
@@ -33,8 +35,12 @@ async function main(): Promise<void> {
 
   const assessments = app.get(CreditAssessmentService);
   const prisma = app.get(PrismaService);
+  const config = app.get<AppConfig>(APP_CONFIG);
 
   try {
+    // Before the fixtures: without a staff account nobody can sign in to look at what follows.
+    await seedBootstrapAdmin(prisma, config, logger);
+
     // Idempotent: clear prior fixture data so re-seeding does not accumulate applicants.
     // Cascades from `Applicant` remove applications, documents, scores and audit rows.
     const fixtureHashes = FIXTURE_PROFILES.map((profile) =>

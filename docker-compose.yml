@@ -68,6 +68,15 @@ services:
       ML_SERVICE_URL: http://ml:8000
       FIELD_ENCRYPTION_KEY: ${FIELD_ENCRYPTION_KEY:?set FIELD_ENCRYPTION_KEY in .env — openssl rand -hex 32}
       FIELD_HASH_KEY: ${FIELD_HASH_KEY:?set FIELD_HASH_KEY in .env — openssl rand -hex 32}
+      # Required, with no fallback. A default here would be a published signing key, and a forged
+      # token against it is an underwriter session with credit authority.
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in .env — openssl rand -hex 32}
+      ACCESS_TOKEN_TTL_SECONDS: ${ACCESS_TOKEN_TTL_SECONDS:-900}
+      REFRESH_TOKEN_TTL_HOURS: ${REFRESH_TOKEN_TTL_HOURS:-9}
+      LOGIN_MAX_ATTEMPTS: ${LOGIN_MAX_ATTEMPTS:-5}
+      LOGIN_LOCKOUT_MINUTES: ${LOGIN_LOCKOUT_MINUTES:-15}
+      BOOTSTRAP_ADMIN_EMAIL: ${BOOTSTRAP_ADMIN_EMAIL:-}
+      BOOTSTRAP_ADMIN_PASSWORD: ${BOOTSTRAP_ADMIN_PASSWORD:-}
       LLAMA_CLOUD_API_KEY: ${LLAMA_CLOUD_API_KEY:-}
       CORS_ORIGINS: http://localhost:3000
       STORAGE_ROOT: /data/storage

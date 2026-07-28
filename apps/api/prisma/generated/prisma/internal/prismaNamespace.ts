@@ -414,7 +414,9 @@ export const ModelName = {
   DecisionAudit: 'DecisionAudit',
   PolicyRuleEvaluation: 'PolicyRuleEvaluation',
   UnderwriterReview: 'UnderwriterReview',
-  ModelVersion: 'ModelVersion'
+  ModelVersion: 'ModelVersion',
+  StaffUser: 'StaffUser',
+  StaffSession: 'StaffSession'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -430,7 +432,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "applicant" | "loanApplication" | "document" | "resumeProfile" | "employmentHistory" | "professionalReference" | "certification" | "award" | "bankStatement" | "bankAccount" | "transaction" | "monthlyFinancialSummary" | "featureStore" | "creditScore" | "decisionAudit" | "policyRuleEvaluation" | "underwriterReview" | "modelVersion"
+    modelProps: "applicant" | "loanApplication" | "document" | "resumeProfile" | "employmentHistory" | "professionalReference" | "certification" | "award" | "bankStatement" | "bankAccount" | "transaction" | "monthlyFinancialSummary" | "featureStore" | "creditScore" | "decisionAudit" | "policyRuleEvaluation" | "underwriterReview" | "modelVersion" | "staffUser" | "staffSession"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1766,6 +1768,154 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    StaffUser: {
+      payload: Prisma.$StaffUserPayload<ExtArgs>
+      fields: Prisma.StaffUserFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.StaffUserFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StaffUserPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.StaffUserFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StaffUserPayload>
+        }
+        findFirst: {
+          args: Prisma.StaffUserFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StaffUserPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.StaffUserFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StaffUserPayload>
+        }
+        findMany: {
+          args: Prisma.StaffUserFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StaffUserPayload>[]
+        }
+        create: {
+          args: Prisma.StaffUserCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StaffUserPayload>
+        }
+        createMany: {
+          args: Prisma.StaffUserCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.StaffUserCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StaffUserPayload>[]
+        }
+        delete: {
+          args: Prisma.StaffUserDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StaffUserPayload>
+        }
+        update: {
+          args: Prisma.StaffUserUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StaffUserPayload>
+        }
+        deleteMany: {
+          args: Prisma.StaffUserDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.StaffUserUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.StaffUserUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StaffUserPayload>[]
+        }
+        upsert: {
+          args: Prisma.StaffUserUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StaffUserPayload>
+        }
+        aggregate: {
+          args: Prisma.StaffUserAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateStaffUser>
+        }
+        groupBy: {
+          args: Prisma.StaffUserGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.StaffUserGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.StaffUserCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.StaffUserCountAggregateOutputType> | number
+        }
+      }
+    }
+    StaffSession: {
+      payload: Prisma.$StaffSessionPayload<ExtArgs>
+      fields: Prisma.StaffSessionFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.StaffSessionFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StaffSessionPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.StaffSessionFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StaffSessionPayload>
+        }
+        findFirst: {
+          args: Prisma.StaffSessionFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StaffSessionPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.StaffSessionFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StaffSessionPayload>
+        }
+        findMany: {
+          args: Prisma.StaffSessionFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StaffSessionPayload>[]
+        }
+        create: {
+          args: Prisma.StaffSessionCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StaffSessionPayload>
+        }
+        createMany: {
+          args: Prisma.StaffSessionCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.StaffSessionCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StaffSessionPayload>[]
+        }
+        delete: {
+          args: Prisma.StaffSessionDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StaffSessionPayload>
+        }
+        update: {
+          args: Prisma.StaffSessionUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StaffSessionPayload>
+        }
+        deleteMany: {
+          args: Prisma.StaffSessionDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.StaffSessionUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.StaffSessionUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StaffSessionPayload>[]
+        }
+        upsert: {
+          args: Prisma.StaffSessionUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StaffSessionPayload>
+        }
+        aggregate: {
+          args: Prisma.StaffSessionAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateStaffSession>
+        }
+        groupBy: {
+          args: Prisma.StaffSessionGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.StaffSessionGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.StaffSessionCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.StaffSessionCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -2142,11 +2292,14 @@ export const UnderwriterReviewScalarFieldEnum = {
   applicationId: 'applicationId',
   reviewerId: 'reviewerId',
   reviewerName: 'reviewerName',
+  reviewerRole: 'reviewerRole',
   decision: 'decision',
+  systemDecision: 'systemDecision',
   justification: 'justification',
   overrodeModel: 'overrodeModel',
   dualAuthById: 'dualAuthById',
   dualAuthByName: 'dualAuthByName',
+  dualAuthByRole: 'dualAuthByRole',
   dualAuthAt: 'dualAuthAt',
   approvedLimitNpr: 'approvedLimitNpr',
   reviewedAt: 'reviewedAt'
@@ -2172,6 +2325,40 @@ export const ModelVersionScalarFieldEnum = {
 } as const
 
 export type ModelVersionScalarFieldEnum = (typeof ModelVersionScalarFieldEnum)[keyof typeof ModelVersionScalarFieldEnum]
+
+
+export const StaffUserScalarFieldEnum = {
+  id: 'id',
+  email: 'email',
+  fullName: 'fullName',
+  passwordHash: 'passwordHash',
+  mustChangePassword: 'mustChangePassword',
+  role: 'role',
+  isActive: 'isActive',
+  failedLoginAttempts: 'failedLoginAttempts',
+  lockedUntil: 'lockedUntil',
+  lastLoginAt: 'lastLoginAt',
+  passwordChangedAt: 'passwordChangedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type StaffUserScalarFieldEnum = (typeof StaffUserScalarFieldEnum)[keyof typeof StaffUserScalarFieldEnum]
+
+
+export const StaffSessionScalarFieldEnum = {
+  id: 'id',
+  staffUserId: 'staffUserId',
+  tokenHash: 'tokenHash',
+  issuedAt: 'issuedAt',
+  expiresAt: 'expiresAt',
+  revokedAt: 'revokedAt',
+  rotatedToId: 'rotatedToId',
+  userAgent: 'userAgent',
+  ipAddress: 'ipAddress'
+} as const
+
+export type StaffSessionScalarFieldEnum = (typeof StaffSessionScalarFieldEnum)[keyof typeof StaffSessionScalarFieldEnum]
 
 
 export const SortOrder = {
@@ -2544,6 +2731,20 @@ export type ListEnumRuleOutcomeFieldRefInput<$PrismaModel> = FieldRefInputType<$
 
 
 /**
+ * Reference to a field of type 'StaffRole'
+ */
+export type EnumStaffRoleFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'StaffRole'>
+    
+
+
+/**
+ * Reference to a field of type 'StaffRole[]'
+ */
+export type ListEnumStaffRoleFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'StaffRole[]'>
+    
+
+
+/**
  * Reference to a field of type 'Float'
  */
 export type FloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float'>
@@ -2725,6 +2926,8 @@ export type GlobalOmitConfig = {
   policyRuleEvaluation?: Prisma.PolicyRuleEvaluationOmit
   underwriterReview?: Prisma.UnderwriterReviewOmit
   modelVersion?: Prisma.ModelVersionOmit
+  staffUser?: Prisma.StaffUserOmit
+  staffSession?: Prisma.StaffSessionOmit
 }
 
 /* Types for Logging */

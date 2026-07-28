@@ -29,6 +29,10 @@ Four-pillar scorecard on a 0–1,000 scale (§4):
 The composite maps to a §5.1 risk band, which sets the decision, the credit limit, the interest
 rate and the Basel provisioning rate.
 
+Staff-operated, and closed by default: every API route requires an authenticated session with a
+sufficient role, and the dashboard renders a sign-in screen until one resolves. See
+[`docs/04-bank-deployment-readiness.md`](docs/04-bank-deployment-readiness.md) §2.
+
 ### Three properties the design holds onto
 
 1. **The scorecard decides; the ML model shadows.** There is no labelled repayment history yet, so
@@ -51,12 +55,24 @@ rate and the Basel provisioning rate.
 ```bash
 cp .env.example .env
 # Generate real keys — the placeholders are rejected at boot, deliberately.
-printf 'FIELD_ENCRYPTION_KEY=%s\nFIELD_HASH_KEY=%s\n' "$(openssl rand -hex 32)" "$(openssl rand -hex 32)" >> .env
+printf 'FIELD_ENCRYPTION_KEY=%s\nFIELD_HASH_KEY=%s\nJWT_SECRET=%s\n' \
+  "$(openssl rand -hex 32)" "$(openssl rand -hex 32)" "$(openssl rand -hex 32)" >> .env
+
+# The first administrator. Provisioned with `mustChangePassword`, so this credential can only be
+# used to set a real one — it cannot approve credit and cannot co-sign an override.
+printf 'BOOTSTRAP_ADMIN_EMAIL=admin@fintara.com.np\nBOOTSTRAP_ADMIN_PASSWORD=%s\n' \
+  "$(openssl rand -base64 18)" >> .env
 
 docker compose up -d --build
 docker compose exec api npx prisma migrate deploy
 docker compose exec api node dist/prisma/seed.js
 ```
+
+Sign in at <http://localhost:3000> as the bootstrap administrator, set a password, then create an
+underwriter and a credit manager from the **Staff** page. Both are needed: SOP-004 dual
+authorisation requires two people with credit authority, because a reviewer cannot co-sign their own
+decision. There are deliberately no seeded underwriter logins — a co-signature is worthless if the
+co-signer's password ships in the repository.
 
 Dashboard on <http://localhost:3000>, API on <http://localhost:4000>, model on
 <http://localhost:8000>.
@@ -97,12 +113,16 @@ npm run dev:web                          # :3000
 packages/contracts/         Single source of truth
   feature-set.v1.json         ← THE feature manifest: 38 features, ordered, with monotonicity
   src/                        Domain enums, §5.1/§5.2/§9.3 tables, wire schemas, policy types
+  src/staff.ts                Roles, authority tables, the SOP-004 lenient-override predicate
 apps/api/                   NestJS — extraction, features, scorecard, decisioning, persistence
-  prisma/schema.prisma        18 tables (§7.1 + audit and governance)
+  prisma/schema.prisma        20 tables (§7.1 + audit, governance, staff identity)
   policy/scoring-policy.json  Live credit policy — thresholds movable without a deploy
+  src/auth/                   JWT + RBAC, global guard, staff provisioning
+  src/underwriter/            SOP-004 review queue and its enforcement
 apps/ml/                    FastAPI — XGBoost PD model + SHAP attribution
-apps/web/                   Next.js — Credit Assessment Dashboard
-docs/                       Data dictionary, scoring methodology, 2026 model landscape
+apps/web/                   Next.js — Credit Assessment Dashboard, review queue, staff admin
+docs/                       Data dictionary, scoring methodology, 2026 model landscape,
+                            bank deployment readiness
 ```
 
 ### The feature manifest is the spine
@@ -120,7 +140,7 @@ column order at predict time. The version travels on every request and a mismatc
 ## Verification
 
 ```bash
-npm test                                  # 231 tests — contracts + API
+npm test                                  # 290 tests — contracts + API
 cd apps/ml && .venv/bin/python -m pytest  # 46 tests — manifest, model, API
 ```
 
@@ -136,6 +156,14 @@ What the suites actually pin down:
 - **Overrides cannot be outscored** — a perfect 1,000 with a sanctions match is still declined.
 - **Degradation never approves** — for every degradation cause.
 - **Fair lending** — the nationality rule contributes zero and is still recorded.
+- **Closed by default** — an undecorated route with no credential is refused; a forged `alg:none`
+  token and every malformed bearer scheme are refused.
+- **SOP-004 dual authorisation** — a lenient override with no co-signer, a self-co-signature, a
+  co-signer without credit authority, and a limit above the §1.2 product ceiling are each refused,
+  and nothing is written when they are. A *harsher* decision than the engine's needs no co-signature.
+- **Separation of duties** — administration and credit authority are disjoint, asserted against the
+  authority tables themselves.
+- **No credential in an audit record** — the co-signer's identity is stored, their password is not.
 
 ### End-to-end, verified
 
@@ -190,11 +218,18 @@ depends on it.
 | KYC face match / liveness, AML watchlist, NID verification API | Ports with stub adapters — third-party integrations requiring contracts Fintara holds. |
 | Core-banking disbursement (SOP-005) | Out of scope. |
 | PSI drift detection (§6.4) | Requires a production score distribution to compare against. |
-| Authentication / RBAC | The dashboard is unauthenticated. **Must not be exposed publicly as-is.** |
+| SSO/OIDC against a bank identity provider | Password auth is implemented; `StaffUser` is shaped so SSO adds a subject column rather than replacing the access model. |
+| SLA escalation for referrals nearing 48h | The queue surfaces wait time and breach count; nothing *notifies* anyone. Needs a mail/alerting channel. |
 
 ---
 
 ## Documentation
+
+**Start here if you want the whole picture:**
+[`PROJECT-OVERVIEW.md`](PROJECT-OVERVIEW.md) — what this is, how the scoring works, what is proven,
+what is deliberately not built, and what to do next. Written for a non-engineering reader.
+
+Then, for detail:
 
 - [`docs/01-data-dictionary.md`](docs/01-data-dictionary.md) — schema and feature manifest, with the
   reasoning behind each decision
@@ -202,6 +237,9 @@ depends on it.
   its clause, and every documented ambiguity and how it was resolved
 - [`docs/03-ai-model-landscape-2026.md`](docs/03-ai-model-landscape-2026.md) — what the leading
   lenders actually use, with sources
+- [`docs/04-bank-deployment-readiness.md`](docs/04-bank-deployment-readiness.md) — what changes
+  between a pilot and a real bank deployment: the underwriter review queue, security hardening,
+  NRB compliance posture, HA/DR
 
 ---
 

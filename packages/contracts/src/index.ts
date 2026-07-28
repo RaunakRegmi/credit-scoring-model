@@ -6,3 +6,4 @@ export * from './enums';
 export * from './features';
 export * from './policy';
 export * from './scoring';
+export * from './staff';

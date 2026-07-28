@@ -39,11 +39,14 @@ export type UnderwriterReviewMinAggregateOutputType = {
   applicationId: string | null
   reviewerId: string | null
   reviewerName: string | null
+  reviewerRole: $Enums.StaffRole | null
   decision: $Enums.Decision | null
+  systemDecision: $Enums.Decision | null
   justification: string | null
   overrodeModel: boolean | null
   dualAuthById: string | null
   dualAuthByName: string | null
+  dualAuthByRole: $Enums.StaffRole | null
   dualAuthAt: Date | null
   approvedLimitNpr: runtime.Decimal | null
   reviewedAt: Date | null
@@ -54,11 +57,14 @@ export type UnderwriterReviewMaxAggregateOutputType = {
   applicationId: string | null
   reviewerId: string | null
   reviewerName: string | null
+  reviewerRole: $Enums.StaffRole | null
   decision: $Enums.Decision | null
+  systemDecision: $Enums.Decision | null
   justification: string | null
   overrodeModel: boolean | null
   dualAuthById: string | null
   dualAuthByName: string | null
+  dualAuthByRole: $Enums.StaffRole | null
   dualAuthAt: Date | null
   approvedLimitNpr: runtime.Decimal | null
   reviewedAt: Date | null
@@ -69,11 +75,14 @@ export type UnderwriterReviewCountAggregateOutputType = {
   applicationId: number
   reviewerId: number
   reviewerName: number
+  reviewerRole: number
   decision: number
+  systemDecision: number
   justification: number
   overrodeModel: number
   dualAuthById: number
   dualAuthByName: number
+  dualAuthByRole: number
   dualAuthAt: number
   approvedLimitNpr: number
   reviewedAt: number
@@ -94,11 +103,14 @@ export type UnderwriterReviewMinAggregateInputType = {
   applicationId?: true
   reviewerId?: true
   reviewerName?: true
+  reviewerRole?: true
   decision?: true
+  systemDecision?: true
   justification?: true
   overrodeModel?: true
   dualAuthById?: true
   dualAuthByName?: true
+  dualAuthByRole?: true
   dualAuthAt?: true
   approvedLimitNpr?: true
   reviewedAt?: true
@@ -109,11 +121,14 @@ export type UnderwriterReviewMaxAggregateInputType = {
   applicationId?: true
   reviewerId?: true
   reviewerName?: true
+  reviewerRole?: true
   decision?: true
+  systemDecision?: true
   justification?: true
   overrodeModel?: true
   dualAuthById?: true
   dualAuthByName?: true
+  dualAuthByRole?: true
   dualAuthAt?: true
   approvedLimitNpr?: true
   reviewedAt?: true
@@ -124,11 +139,14 @@ export type UnderwriterReviewCountAggregateInputType = {
   applicationId?: true
   reviewerId?: true
   reviewerName?: true
+  reviewerRole?: true
   decision?: true
+  systemDecision?: true
   justification?: true
   overrodeModel?: true
   dualAuthById?: true
   dualAuthByName?: true
+  dualAuthByRole?: true
   dualAuthAt?: true
   approvedLimitNpr?: true
   reviewedAt?: true
@@ -226,11 +244,14 @@ export type UnderwriterReviewGroupByOutputType = {
   applicationId: string
   reviewerId: string
   reviewerName: string
+  reviewerRole: $Enums.StaffRole
   decision: $Enums.Decision
+  systemDecision: $Enums.Decision
   justification: string
   overrodeModel: boolean
   dualAuthById: string | null
   dualAuthByName: string | null
+  dualAuthByRole: $Enums.StaffRole | null
   dualAuthAt: Date | null
   approvedLimitNpr: runtime.Decimal | null
   reviewedAt: Date
@@ -264,11 +285,14 @@ export type UnderwriterReviewWhereInput = {
   applicationId?: Prisma.UuidFilter<"UnderwriterReview"> | string
   reviewerId?: Prisma.StringFilter<"UnderwriterReview"> | string
   reviewerName?: Prisma.StringFilter<"UnderwriterReview"> | string
+  reviewerRole?: Prisma.EnumStaffRoleFilter<"UnderwriterReview"> | $Enums.StaffRole
   decision?: Prisma.EnumDecisionFilter<"UnderwriterReview"> | $Enums.Decision
+  systemDecision?: Prisma.EnumDecisionFilter<"UnderwriterReview"> | $Enums.Decision
   justification?: Prisma.StringFilter<"UnderwriterReview"> | string
   overrodeModel?: Prisma.BoolFilter<"UnderwriterReview"> | boolean
   dualAuthById?: Prisma.StringNullableFilter<"UnderwriterReview"> | string | null
   dualAuthByName?: Prisma.StringNullableFilter<"UnderwriterReview"> | string | null
+  dualAuthByRole?: Prisma.EnumStaffRoleNullableFilter<"UnderwriterReview"> | $Enums.StaffRole | null
   dualAuthAt?: Prisma.DateTimeNullableFilter<"UnderwriterReview"> | Date | string | null
   approvedLimitNpr?: Prisma.DecimalNullableFilter<"UnderwriterReview"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   reviewedAt?: Prisma.DateTimeFilter<"UnderwriterReview"> | Date | string
@@ -280,11 +304,14 @@ export type UnderwriterReviewOrderByWithRelationInput = {
   applicationId?: Prisma.SortOrder
   reviewerId?: Prisma.SortOrder
   reviewerName?: Prisma.SortOrder
+  reviewerRole?: Prisma.SortOrder
   decision?: Prisma.SortOrder
+  systemDecision?: Prisma.SortOrder
   justification?: Prisma.SortOrder
   overrodeModel?: Prisma.SortOrder
   dualAuthById?: Prisma.SortOrderInput | Prisma.SortOrder
   dualAuthByName?: Prisma.SortOrderInput | Prisma.SortOrder
+  dualAuthByRole?: Prisma.SortOrderInput | Prisma.SortOrder
   dualAuthAt?: Prisma.SortOrderInput | Prisma.SortOrder
   approvedLimitNpr?: Prisma.SortOrderInput | Prisma.SortOrder
   reviewedAt?: Prisma.SortOrder
@@ -299,11 +326,14 @@ export type UnderwriterReviewWhereUniqueInput = Prisma.AtLeast<{
   applicationId?: Prisma.UuidFilter<"UnderwriterReview"> | string
   reviewerId?: Prisma.StringFilter<"UnderwriterReview"> | string
   reviewerName?: Prisma.StringFilter<"UnderwriterReview"> | string
+  reviewerRole?: Prisma.EnumStaffRoleFilter<"UnderwriterReview"> | $Enums.StaffRole
   decision?: Prisma.EnumDecisionFilter<"UnderwriterReview"> | $Enums.Decision
+  systemDecision?: Prisma.EnumDecisionFilter<"UnderwriterReview"> | $Enums.Decision
   justification?: Prisma.StringFilter<"UnderwriterReview"> | string
   overrodeModel?: Prisma.BoolFilter<"UnderwriterReview"> | boolean
   dualAuthById?: Prisma.StringNullableFilter<"UnderwriterReview"> | string | null
   dualAuthByName?: Prisma.StringNullableFilter<"UnderwriterReview"> | string | null
+  dualAuthByRole?: Prisma.EnumStaffRoleNullableFilter<"UnderwriterReview"> | $Enums.StaffRole | null
   dualAuthAt?: Prisma.DateTimeNullableFilter<"UnderwriterReview"> | Date | string | null
   approvedLimitNpr?: Prisma.DecimalNullableFilter<"UnderwriterReview"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   reviewedAt?: Prisma.DateTimeFilter<"UnderwriterReview"> | Date | string
@@ -315,11 +345,14 @@ export type UnderwriterReviewOrderByWithAggregationInput = {
   applicationId?: Prisma.SortOrder
   reviewerId?: Prisma.SortOrder
   reviewerName?: Prisma.SortOrder
+  reviewerRole?: Prisma.SortOrder
   decision?: Prisma.SortOrder
+  systemDecision?: Prisma.SortOrder
   justification?: Prisma.SortOrder
   overrodeModel?: Prisma.SortOrder
   dualAuthById?: Prisma.SortOrderInput | Prisma.SortOrder
   dualAuthByName?: Prisma.SortOrderInput | Prisma.SortOrder
+  dualAuthByRole?: Prisma.SortOrderInput | Prisma.SortOrder
   dualAuthAt?: Prisma.SortOrderInput | Prisma.SortOrder
   approvedLimitNpr?: Prisma.SortOrderInput | Prisma.SortOrder
   reviewedAt?: Prisma.SortOrder
@@ -338,11 +371,14 @@ export type UnderwriterReviewScalarWhereWithAggregatesInput = {
   applicationId?: Prisma.UuidWithAggregatesFilter<"UnderwriterReview"> | string
   reviewerId?: Prisma.StringWithAggregatesFilter<"UnderwriterReview"> | string
   reviewerName?: Prisma.StringWithAggregatesFilter<"UnderwriterReview"> | string
+  reviewerRole?: Prisma.EnumStaffRoleWithAggregatesFilter<"UnderwriterReview"> | $Enums.StaffRole
   decision?: Prisma.EnumDecisionWithAggregatesFilter<"UnderwriterReview"> | $Enums.Decision
+  systemDecision?: Prisma.EnumDecisionWithAggregatesFilter<"UnderwriterReview"> | $Enums.Decision
   justification?: Prisma.StringWithAggregatesFilter<"UnderwriterReview"> | string
   overrodeModel?: Prisma.BoolWithAggregatesFilter<"UnderwriterReview"> | boolean
   dualAuthById?: Prisma.StringNullableWithAggregatesFilter<"UnderwriterReview"> | string | null
   dualAuthByName?: Prisma.StringNullableWithAggregatesFilter<"UnderwriterReview"> | string | null
+  dualAuthByRole?: Prisma.EnumStaffRoleNullableWithAggregatesFilter<"UnderwriterReview"> | $Enums.StaffRole | null
   dualAuthAt?: Prisma.DateTimeNullableWithAggregatesFilter<"UnderwriterReview"> | Date | string | null
   approvedLimitNpr?: Prisma.DecimalNullableWithAggregatesFilter<"UnderwriterReview"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   reviewedAt?: Prisma.DateTimeWithAggregatesFilter<"UnderwriterReview"> | Date | string
@@ -352,11 +388,14 @@ export type UnderwriterReviewCreateInput = {
   id?: string
   reviewerId: string
   reviewerName: string
+  reviewerRole?: $Enums.StaffRole
   decision: $Enums.Decision
+  systemDecision?: $Enums.Decision
   justification: string
   overrodeModel?: boolean
   dualAuthById?: string | null
   dualAuthByName?: string | null
+  dualAuthByRole?: $Enums.StaffRole | null
   dualAuthAt?: Date | string | null
   approvedLimitNpr?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   reviewedAt?: Date | string
@@ -368,11 +407,14 @@ export type UnderwriterReviewUncheckedCreateInput = {
   applicationId: string
   reviewerId: string
   reviewerName: string
+  reviewerRole?: $Enums.StaffRole
   decision: $Enums.Decision
+  systemDecision?: $Enums.Decision
   justification: string
   overrodeModel?: boolean
   dualAuthById?: string | null
   dualAuthByName?: string | null
+  dualAuthByRole?: $Enums.StaffRole | null
   dualAuthAt?: Date | string | null
   approvedLimitNpr?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   reviewedAt?: Date | string
@@ -382,11 +424,14 @@ export type UnderwriterReviewUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   reviewerId?: Prisma.StringFieldUpdateOperationsInput | string
   reviewerName?: Prisma.StringFieldUpdateOperationsInput | string
+  reviewerRole?: Prisma.EnumStaffRoleFieldUpdateOperationsInput | $Enums.StaffRole
   decision?: Prisma.EnumDecisionFieldUpdateOperationsInput | $Enums.Decision
+  systemDecision?: Prisma.EnumDecisionFieldUpdateOperationsInput | $Enums.Decision
   justification?: Prisma.StringFieldUpdateOperationsInput | string
   overrodeModel?: Prisma.BoolFieldUpdateOperationsInput | boolean
   dualAuthById?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   dualAuthByName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dualAuthByRole?: Prisma.NullableEnumStaffRoleFieldUpdateOperationsInput | $Enums.StaffRole | null
   dualAuthAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   approvedLimitNpr?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   reviewedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -398,11 +443,14 @@ export type UnderwriterReviewUncheckedUpdateInput = {
   applicationId?: Prisma.StringFieldUpdateOperationsInput | string
   reviewerId?: Prisma.StringFieldUpdateOperationsInput | string
   reviewerName?: Prisma.StringFieldUpdateOperationsInput | string
+  reviewerRole?: Prisma.EnumStaffRoleFieldUpdateOperationsInput | $Enums.StaffRole
   decision?: Prisma.EnumDecisionFieldUpdateOperationsInput | $Enums.Decision
+  systemDecision?: Prisma.EnumDecisionFieldUpdateOperationsInput | $Enums.Decision
   justification?: Prisma.StringFieldUpdateOperationsInput | string
   overrodeModel?: Prisma.BoolFieldUpdateOperationsInput | boolean
   dualAuthById?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   dualAuthByName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dualAuthByRole?: Prisma.NullableEnumStaffRoleFieldUpdateOperationsInput | $Enums.StaffRole | null
   dualAuthAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   approvedLimitNpr?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   reviewedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -413,11 +461,14 @@ export type UnderwriterReviewCreateManyInput = {
   applicationId: string
   reviewerId: string
   reviewerName: string
+  reviewerRole?: $Enums.StaffRole
   decision: $Enums.Decision
+  systemDecision?: $Enums.Decision
   justification: string
   overrodeModel?: boolean
   dualAuthById?: string | null
   dualAuthByName?: string | null
+  dualAuthByRole?: $Enums.StaffRole | null
   dualAuthAt?: Date | string | null
   approvedLimitNpr?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   reviewedAt?: Date | string
@@ -427,11 +478,14 @@ export type UnderwriterReviewUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   reviewerId?: Prisma.StringFieldUpdateOperationsInput | string
   reviewerName?: Prisma.StringFieldUpdateOperationsInput | string
+  reviewerRole?: Prisma.EnumStaffRoleFieldUpdateOperationsInput | $Enums.StaffRole
   decision?: Prisma.EnumDecisionFieldUpdateOperationsInput | $Enums.Decision
+  systemDecision?: Prisma.EnumDecisionFieldUpdateOperationsInput | $Enums.Decision
   justification?: Prisma.StringFieldUpdateOperationsInput | string
   overrodeModel?: Prisma.BoolFieldUpdateOperationsInput | boolean
   dualAuthById?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   dualAuthByName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dualAuthByRole?: Prisma.NullableEnumStaffRoleFieldUpdateOperationsInput | $Enums.StaffRole | null
   dualAuthAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   approvedLimitNpr?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   reviewedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -442,11 +496,14 @@ export type UnderwriterReviewUncheckedUpdateManyInput = {
   applicationId?: Prisma.StringFieldUpdateOperationsInput | string
   reviewerId?: Prisma.StringFieldUpdateOperationsInput | string
   reviewerName?: Prisma.StringFieldUpdateOperationsInput | string
+  reviewerRole?: Prisma.EnumStaffRoleFieldUpdateOperationsInput | $Enums.StaffRole
   decision?: Prisma.EnumDecisionFieldUpdateOperationsInput | $Enums.Decision
+  systemDecision?: Prisma.EnumDecisionFieldUpdateOperationsInput | $Enums.Decision
   justification?: Prisma.StringFieldUpdateOperationsInput | string
   overrodeModel?: Prisma.BoolFieldUpdateOperationsInput | boolean
   dualAuthById?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   dualAuthByName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dualAuthByRole?: Prisma.NullableEnumStaffRoleFieldUpdateOperationsInput | $Enums.StaffRole | null
   dualAuthAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   approvedLimitNpr?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   reviewedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -467,11 +524,14 @@ export type UnderwriterReviewCountOrderByAggregateInput = {
   applicationId?: Prisma.SortOrder
   reviewerId?: Prisma.SortOrder
   reviewerName?: Prisma.SortOrder
+  reviewerRole?: Prisma.SortOrder
   decision?: Prisma.SortOrder
+  systemDecision?: Prisma.SortOrder
   justification?: Prisma.SortOrder
   overrodeModel?: Prisma.SortOrder
   dualAuthById?: Prisma.SortOrder
   dualAuthByName?: Prisma.SortOrder
+  dualAuthByRole?: Prisma.SortOrder
   dualAuthAt?: Prisma.SortOrder
   approvedLimitNpr?: Prisma.SortOrder
   reviewedAt?: Prisma.SortOrder
@@ -486,11 +546,14 @@ export type UnderwriterReviewMaxOrderByAggregateInput = {
   applicationId?: Prisma.SortOrder
   reviewerId?: Prisma.SortOrder
   reviewerName?: Prisma.SortOrder
+  reviewerRole?: Prisma.SortOrder
   decision?: Prisma.SortOrder
+  systemDecision?: Prisma.SortOrder
   justification?: Prisma.SortOrder
   overrodeModel?: Prisma.SortOrder
   dualAuthById?: Prisma.SortOrder
   dualAuthByName?: Prisma.SortOrder
+  dualAuthByRole?: Prisma.SortOrder
   dualAuthAt?: Prisma.SortOrder
   approvedLimitNpr?: Prisma.SortOrder
   reviewedAt?: Prisma.SortOrder
@@ -501,11 +564,14 @@ export type UnderwriterReviewMinOrderByAggregateInput = {
   applicationId?: Prisma.SortOrder
   reviewerId?: Prisma.SortOrder
   reviewerName?: Prisma.SortOrder
+  reviewerRole?: Prisma.SortOrder
   decision?: Prisma.SortOrder
+  systemDecision?: Prisma.SortOrder
   justification?: Prisma.SortOrder
   overrodeModel?: Prisma.SortOrder
   dualAuthById?: Prisma.SortOrder
   dualAuthByName?: Prisma.SortOrder
+  dualAuthByRole?: Prisma.SortOrder
   dualAuthAt?: Prisma.SortOrder
   approvedLimitNpr?: Prisma.SortOrder
   reviewedAt?: Prisma.SortOrder
@@ -557,15 +623,26 @@ export type UnderwriterReviewUncheckedUpdateManyWithoutApplicationNestedInput = 
   deleteMany?: Prisma.UnderwriterReviewScalarWhereInput | Prisma.UnderwriterReviewScalarWhereInput[]
 }
 
+export type EnumStaffRoleFieldUpdateOperationsInput = {
+  set?: $Enums.StaffRole
+}
+
+export type NullableEnumStaffRoleFieldUpdateOperationsInput = {
+  set?: $Enums.StaffRole | null
+}
+
 export type UnderwriterReviewCreateWithoutApplicationInput = {
   id?: string
   reviewerId: string
   reviewerName: string
+  reviewerRole?: $Enums.StaffRole
   decision: $Enums.Decision
+  systemDecision?: $Enums.Decision
   justification: string
   overrodeModel?: boolean
   dualAuthById?: string | null
   dualAuthByName?: string | null
+  dualAuthByRole?: $Enums.StaffRole | null
   dualAuthAt?: Date | string | null
   approvedLimitNpr?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   reviewedAt?: Date | string
@@ -575,11 +652,14 @@ export type UnderwriterReviewUncheckedCreateWithoutApplicationInput = {
   id?: string
   reviewerId: string
   reviewerName: string
+  reviewerRole?: $Enums.StaffRole
   decision: $Enums.Decision
+  systemDecision?: $Enums.Decision
   justification: string
   overrodeModel?: boolean
   dualAuthById?: string | null
   dualAuthByName?: string | null
+  dualAuthByRole?: $Enums.StaffRole | null
   dualAuthAt?: Date | string | null
   approvedLimitNpr?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   reviewedAt?: Date | string
@@ -619,11 +699,14 @@ export type UnderwriterReviewScalarWhereInput = {
   applicationId?: Prisma.UuidFilter<"UnderwriterReview"> | string
   reviewerId?: Prisma.StringFilter<"UnderwriterReview"> | string
   reviewerName?: Prisma.StringFilter<"UnderwriterReview"> | string
+  reviewerRole?: Prisma.EnumStaffRoleFilter<"UnderwriterReview"> | $Enums.StaffRole
   decision?: Prisma.EnumDecisionFilter<"UnderwriterReview"> | $Enums.Decision
+  systemDecision?: Prisma.EnumDecisionFilter<"UnderwriterReview"> | $Enums.Decision
   justification?: Prisma.StringFilter<"UnderwriterReview"> | string
   overrodeModel?: Prisma.BoolFilter<"UnderwriterReview"> | boolean
   dualAuthById?: Prisma.StringNullableFilter<"UnderwriterReview"> | string | null
   dualAuthByName?: Prisma.StringNullableFilter<"UnderwriterReview"> | string | null
+  dualAuthByRole?: Prisma.EnumStaffRoleNullableFilter<"UnderwriterReview"> | $Enums.StaffRole | null
   dualAuthAt?: Prisma.DateTimeNullableFilter<"UnderwriterReview"> | Date | string | null
   approvedLimitNpr?: Prisma.DecimalNullableFilter<"UnderwriterReview"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   reviewedAt?: Prisma.DateTimeFilter<"UnderwriterReview"> | Date | string
@@ -633,11 +716,14 @@ export type UnderwriterReviewCreateManyApplicationInput = {
   id?: string
   reviewerId: string
   reviewerName: string
+  reviewerRole?: $Enums.StaffRole
   decision: $Enums.Decision
+  systemDecision?: $Enums.Decision
   justification: string
   overrodeModel?: boolean
   dualAuthById?: string | null
   dualAuthByName?: string | null
+  dualAuthByRole?: $Enums.StaffRole | null
   dualAuthAt?: Date | string | null
   approvedLimitNpr?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   reviewedAt?: Date | string
@@ -647,11 +733,14 @@ export type UnderwriterReviewUpdateWithoutApplicationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   reviewerId?: Prisma.StringFieldUpdateOperationsInput | string
   reviewerName?: Prisma.StringFieldUpdateOperationsInput | string
+  reviewerRole?: Prisma.EnumStaffRoleFieldUpdateOperationsInput | $Enums.StaffRole
   decision?: Prisma.EnumDecisionFieldUpdateOperationsInput | $Enums.Decision
+  systemDecision?: Prisma.EnumDecisionFieldUpdateOperationsInput | $Enums.Decision
   justification?: Prisma.StringFieldUpdateOperationsInput | string
   overrodeModel?: Prisma.BoolFieldUpdateOperationsInput | boolean
   dualAuthById?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   dualAuthByName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dualAuthByRole?: Prisma.NullableEnumStaffRoleFieldUpdateOperationsInput | $Enums.StaffRole | null
   dualAuthAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   approvedLimitNpr?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   reviewedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -661,11 +750,14 @@ export type UnderwriterReviewUncheckedUpdateWithoutApplicationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   reviewerId?: Prisma.StringFieldUpdateOperationsInput | string
   reviewerName?: Prisma.StringFieldUpdateOperationsInput | string
+  reviewerRole?: Prisma.EnumStaffRoleFieldUpdateOperationsInput | $Enums.StaffRole
   decision?: Prisma.EnumDecisionFieldUpdateOperationsInput | $Enums.Decision
+  systemDecision?: Prisma.EnumDecisionFieldUpdateOperationsInput | $Enums.Decision
   justification?: Prisma.StringFieldUpdateOperationsInput | string
   overrodeModel?: Prisma.BoolFieldUpdateOperationsInput | boolean
   dualAuthById?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   dualAuthByName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dualAuthByRole?: Prisma.NullableEnumStaffRoleFieldUpdateOperationsInput | $Enums.StaffRole | null
   dualAuthAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   approvedLimitNpr?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   reviewedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -675,11 +767,14 @@ export type UnderwriterReviewUncheckedUpdateManyWithoutApplicationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   reviewerId?: Prisma.StringFieldUpdateOperationsInput | string
   reviewerName?: Prisma.StringFieldUpdateOperationsInput | string
+  reviewerRole?: Prisma.EnumStaffRoleFieldUpdateOperationsInput | $Enums.StaffRole
   decision?: Prisma.EnumDecisionFieldUpdateOperationsInput | $Enums.Decision
+  systemDecision?: Prisma.EnumDecisionFieldUpdateOperationsInput | $Enums.Decision
   justification?: Prisma.StringFieldUpdateOperationsInput | string
   overrodeModel?: Prisma.BoolFieldUpdateOperationsInput | boolean
   dualAuthById?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   dualAuthByName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dualAuthByRole?: Prisma.NullableEnumStaffRoleFieldUpdateOperationsInput | $Enums.StaffRole | null
   dualAuthAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   approvedLimitNpr?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   reviewedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -692,11 +787,14 @@ export type UnderwriterReviewSelect<ExtArgs extends runtime.Types.Extensions.Int
   applicationId?: boolean
   reviewerId?: boolean
   reviewerName?: boolean
+  reviewerRole?: boolean
   decision?: boolean
+  systemDecision?: boolean
   justification?: boolean
   overrodeModel?: boolean
   dualAuthById?: boolean
   dualAuthByName?: boolean
+  dualAuthByRole?: boolean
   dualAuthAt?: boolean
   approvedLimitNpr?: boolean
   reviewedAt?: boolean
@@ -708,11 +806,14 @@ export type UnderwriterReviewSelectCreateManyAndReturn<ExtArgs extends runtime.T
   applicationId?: boolean
   reviewerId?: boolean
   reviewerName?: boolean
+  reviewerRole?: boolean
   decision?: boolean
+  systemDecision?: boolean
   justification?: boolean
   overrodeModel?: boolean
   dualAuthById?: boolean
   dualAuthByName?: boolean
+  dualAuthByRole?: boolean
   dualAuthAt?: boolean
   approvedLimitNpr?: boolean
   reviewedAt?: boolean
@@ -724,11 +825,14 @@ export type UnderwriterReviewSelectUpdateManyAndReturn<ExtArgs extends runtime.T
   applicationId?: boolean
   reviewerId?: boolean
   reviewerName?: boolean
+  reviewerRole?: boolean
   decision?: boolean
+  systemDecision?: boolean
   justification?: boolean
   overrodeModel?: boolean
   dualAuthById?: boolean
   dualAuthByName?: boolean
+  dualAuthByRole?: boolean
   dualAuthAt?: boolean
   approvedLimitNpr?: boolean
   reviewedAt?: boolean
@@ -740,17 +844,20 @@ export type UnderwriterReviewSelectScalar = {
   applicationId?: boolean
   reviewerId?: boolean
   reviewerName?: boolean
+  reviewerRole?: boolean
   decision?: boolean
+  systemDecision?: boolean
   justification?: boolean
   overrodeModel?: boolean
   dualAuthById?: boolean
   dualAuthByName?: boolean
+  dualAuthByRole?: boolean
   dualAuthAt?: boolean
   approvedLimitNpr?: boolean
   reviewedAt?: boolean
 }
 
-export type UnderwriterReviewOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "applicationId" | "reviewerId" | "reviewerName" | "decision" | "justification" | "overrodeModel" | "dualAuthById" | "dualAuthByName" | "dualAuthAt" | "approvedLimitNpr" | "reviewedAt", ExtArgs["result"]["underwriterReview"]>
+export type UnderwriterReviewOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "applicationId" | "reviewerId" | "reviewerName" | "reviewerRole" | "decision" | "systemDecision" | "justification" | "overrodeModel" | "dualAuthById" | "dualAuthByName" | "dualAuthByRole" | "dualAuthAt" | "approvedLimitNpr" | "reviewedAt", ExtArgs["result"]["underwriterReview"]>
 export type UnderwriterReviewInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   application?: boolean | Prisma.LoanApplicationDefaultArgs<ExtArgs>
 }
@@ -769,9 +876,24 @@ export type $UnderwriterReviewPayload<ExtArgs extends runtime.Types.Extensions.I
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
     applicationId: string
+    /**
+     * Not a foreign key on purpose. A review is a permanent record of who decided what; if a
+     * staff account is later deleted, the review must survive it rather than cascade away.
+     */
     reviewerId: string
     reviewerName: string
+    /**
+     * Authority the reviewer held *at the time*. A later promotion or demotion must not
+     * retroactively change what an auditor sees.
+     */
+    reviewerRole: $Enums.StaffRole
     decision: $Enums.Decision
+    /**
+     * What the engine recommended when the review was opened. Stored so one row answers the
+     * auditor's actual question — "did a human overrule the system, and on what grounds" —
+     * without reconstructing the score history.
+     */
+    systemDecision: $Enums.Decision
     /**
      * SOP-004: written justification is mandatory when overriding the model.
      */
@@ -782,6 +904,7 @@ export type $UnderwriterReviewPayload<ExtArgs extends runtime.Types.Extensions.I
      */
     dualAuthById: string | null
     dualAuthByName: string | null
+    dualAuthByRole: $Enums.StaffRole | null
     dualAuthAt: Date | null
     approvedLimitNpr: runtime.Decimal | null
     reviewedAt: Date
@@ -1213,11 +1336,14 @@ export interface UnderwriterReviewFieldRefs {
   readonly applicationId: Prisma.FieldRef<"UnderwriterReview", 'String'>
   readonly reviewerId: Prisma.FieldRef<"UnderwriterReview", 'String'>
   readonly reviewerName: Prisma.FieldRef<"UnderwriterReview", 'String'>
+  readonly reviewerRole: Prisma.FieldRef<"UnderwriterReview", 'StaffRole'>
   readonly decision: Prisma.FieldRef<"UnderwriterReview", 'Decision'>
+  readonly systemDecision: Prisma.FieldRef<"UnderwriterReview", 'Decision'>
   readonly justification: Prisma.FieldRef<"UnderwriterReview", 'String'>
   readonly overrodeModel: Prisma.FieldRef<"UnderwriterReview", 'Boolean'>
   readonly dualAuthById: Prisma.FieldRef<"UnderwriterReview", 'String'>
   readonly dualAuthByName: Prisma.FieldRef<"UnderwriterReview", 'String'>
+  readonly dualAuthByRole: Prisma.FieldRef<"UnderwriterReview", 'StaffRole'>
   readonly dualAuthAt: Prisma.FieldRef<"UnderwriterReview", 'DateTime'>
   readonly approvedLimitNpr: Prisma.FieldRef<"UnderwriterReview", 'Decimal'>
   readonly reviewedAt: Prisma.FieldRef<"UnderwriterReview", 'DateTime'>

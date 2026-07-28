@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 
+import { AppShell } from '@/components/app-shell';
+
 import { Providers } from './providers';
 
 import './globals.css';
@@ -25,7 +27,14 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <Providers>{children}</Providers>
+        {/*
+          `AppShell` sits inside `Providers` and outside every page, so no route can render
+          without a resolved session — adding a page cannot accidentally add an unauthenticated
+          one. It needs the query client, hence the nesting order.
+        */}
+        <Providers>
+          <AppShell>{children}</AppShell>
+        </Providers>
       </body>
     </html>
   );

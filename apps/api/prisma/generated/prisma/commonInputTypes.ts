@@ -657,6 +657,40 @@ export type EnumRuleOutcomeWithAggregatesFilter<$PrismaModel = never> = {
   _max?: Prisma.NestedEnumRuleOutcomeFilter<$PrismaModel>
 }
 
+export type EnumStaffRoleFilter<$PrismaModel = never> = {
+  equals?: $Enums.StaffRole | Prisma.EnumStaffRoleFieldRefInput<$PrismaModel>
+  in?: $Enums.StaffRole[] | Prisma.ListEnumStaffRoleFieldRefInput<$PrismaModel>
+  notIn?: $Enums.StaffRole[] | Prisma.ListEnumStaffRoleFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumStaffRoleFilter<$PrismaModel> | $Enums.StaffRole
+}
+
+export type EnumStaffRoleNullableFilter<$PrismaModel = never> = {
+  equals?: $Enums.StaffRole | Prisma.EnumStaffRoleFieldRefInput<$PrismaModel> | null
+  in?: $Enums.StaffRole[] | Prisma.ListEnumStaffRoleFieldRefInput<$PrismaModel> | null
+  notIn?: $Enums.StaffRole[] | Prisma.ListEnumStaffRoleFieldRefInput<$PrismaModel> | null
+  not?: Prisma.NestedEnumStaffRoleNullableFilter<$PrismaModel> | $Enums.StaffRole | null
+}
+
+export type EnumStaffRoleWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.StaffRole | Prisma.EnumStaffRoleFieldRefInput<$PrismaModel>
+  in?: $Enums.StaffRole[] | Prisma.ListEnumStaffRoleFieldRefInput<$PrismaModel>
+  notIn?: $Enums.StaffRole[] | Prisma.ListEnumStaffRoleFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumStaffRoleWithAggregatesFilter<$PrismaModel> | $Enums.StaffRole
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumStaffRoleFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumStaffRoleFilter<$PrismaModel>
+}
+
+export type EnumStaffRoleNullableWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.StaffRole | Prisma.EnumStaffRoleFieldRefInput<$PrismaModel> | null
+  in?: $Enums.StaffRole[] | Prisma.ListEnumStaffRoleFieldRefInput<$PrismaModel> | null
+  notIn?: $Enums.StaffRole[] | Prisma.ListEnumStaffRoleFieldRefInput<$PrismaModel> | null
+  not?: Prisma.NestedEnumStaffRoleNullableWithAggregatesFilter<$PrismaModel> | $Enums.StaffRole | null
+  _count?: Prisma.NestedIntNullableFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumStaffRoleNullableFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumStaffRoleNullableFilter<$PrismaModel>
+}
+
 export type EnumModelProvenanceFilter<$PrismaModel = never> = {
   equals?: $Enums.ModelProvenance | Prisma.EnumModelProvenanceFieldRefInput<$PrismaModel>
   in?: $Enums.ModelProvenance[] | Prisma.ListEnumModelProvenanceFieldRefInput<$PrismaModel>
@@ -672,6 +706,33 @@ export type EnumModelProvenanceWithAggregatesFilter<$PrismaModel = never> = {
   _count?: Prisma.NestedIntFilter<$PrismaModel>
   _min?: Prisma.NestedEnumModelProvenanceFilter<$PrismaModel>
   _max?: Prisma.NestedEnumModelProvenanceFilter<$PrismaModel>
+}
+
+export type UuidNullableFilter<$PrismaModel = never> = {
+  equals?: string | Prisma.StringFieldRefInput<$PrismaModel> | null
+  in?: string[] | Prisma.ListStringFieldRefInput<$PrismaModel> | null
+  notIn?: string[] | Prisma.ListStringFieldRefInput<$PrismaModel> | null
+  lt?: string | Prisma.StringFieldRefInput<$PrismaModel>
+  lte?: string | Prisma.StringFieldRefInput<$PrismaModel>
+  gt?: string | Prisma.StringFieldRefInput<$PrismaModel>
+  gte?: string | Prisma.StringFieldRefInput<$PrismaModel>
+  mode?: Prisma.QueryMode
+  not?: Prisma.NestedUuidNullableFilter<$PrismaModel> | string | null
+}
+
+export type UuidNullableWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: string | Prisma.StringFieldRefInput<$PrismaModel> | null
+  in?: string[] | Prisma.ListStringFieldRefInput<$PrismaModel> | null
+  notIn?: string[] | Prisma.ListStringFieldRefInput<$PrismaModel> | null
+  lt?: string | Prisma.StringFieldRefInput<$PrismaModel>
+  lte?: string | Prisma.StringFieldRefInput<$PrismaModel>
+  gt?: string | Prisma.StringFieldRefInput<$PrismaModel>
+  gte?: string | Prisma.StringFieldRefInput<$PrismaModel>
+  mode?: Prisma.QueryMode
+  not?: Prisma.NestedUuidNullableWithAggregatesFilter<$PrismaModel> | string | null
+  _count?: Prisma.NestedIntNullableFilter<$PrismaModel>
+  _min?: Prisma.NestedStringNullableFilter<$PrismaModel>
+  _max?: Prisma.NestedStringNullableFilter<$PrismaModel>
 }
 
 export type NestedUuidFilter<$PrismaModel = never> = {
@@ -1274,6 +1335,40 @@ export type NestedEnumRuleOutcomeWithAggregatesFilter<$PrismaModel = never> = {
   _max?: Prisma.NestedEnumRuleOutcomeFilter<$PrismaModel>
 }
 
+export type NestedEnumStaffRoleFilter<$PrismaModel = never> = {
+  equals?: $Enums.StaffRole | Prisma.EnumStaffRoleFieldRefInput<$PrismaModel>
+  in?: $Enums.StaffRole[] | Prisma.ListEnumStaffRoleFieldRefInput<$PrismaModel>
+  notIn?: $Enums.StaffRole[] | Prisma.ListEnumStaffRoleFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumStaffRoleFilter<$PrismaModel> | $Enums.StaffRole
+}
+
+export type NestedEnumStaffRoleNullableFilter<$PrismaModel = never> = {
+  equals?: $Enums.StaffRole | Prisma.EnumStaffRoleFieldRefInput<$PrismaModel> | null
+  in?: $Enums.StaffRole[] | Prisma.ListEnumStaffRoleFieldRefInput<$PrismaModel> | null
+  notIn?: $Enums.StaffRole[] | Prisma.ListEnumStaffRoleFieldRefInput<$PrismaModel> | null
+  not?: Prisma.NestedEnumStaffRoleNullableFilter<$PrismaModel> | $Enums.StaffRole | null
+}
+
+export type NestedEnumStaffRoleWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.StaffRole | Prisma.EnumStaffRoleFieldRefInput<$PrismaModel>
+  in?: $Enums.StaffRole[] | Prisma.ListEnumStaffRoleFieldRefInput<$PrismaModel>
+  notIn?: $Enums.StaffRole[] | Prisma.ListEnumStaffRoleFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumStaffRoleWithAggregatesFilter<$PrismaModel> | $Enums.StaffRole
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumStaffRoleFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumStaffRoleFilter<$PrismaModel>
+}
+
+export type NestedEnumStaffRoleNullableWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.StaffRole | Prisma.EnumStaffRoleFieldRefInput<$PrismaModel> | null
+  in?: $Enums.StaffRole[] | Prisma.ListEnumStaffRoleFieldRefInput<$PrismaModel> | null
+  notIn?: $Enums.StaffRole[] | Prisma.ListEnumStaffRoleFieldRefInput<$PrismaModel> | null
+  not?: Prisma.NestedEnumStaffRoleNullableWithAggregatesFilter<$PrismaModel> | $Enums.StaffRole | null
+  _count?: Prisma.NestedIntNullableFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumStaffRoleNullableFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumStaffRoleNullableFilter<$PrismaModel>
+}
+
 export type NestedEnumModelProvenanceFilter<$PrismaModel = never> = {
   equals?: $Enums.ModelProvenance | Prisma.EnumModelProvenanceFieldRefInput<$PrismaModel>
   in?: $Enums.ModelProvenance[] | Prisma.ListEnumModelProvenanceFieldRefInput<$PrismaModel>
@@ -1289,6 +1384,31 @@ export type NestedEnumModelProvenanceWithAggregatesFilter<$PrismaModel = never> 
   _count?: Prisma.NestedIntFilter<$PrismaModel>
   _min?: Prisma.NestedEnumModelProvenanceFilter<$PrismaModel>
   _max?: Prisma.NestedEnumModelProvenanceFilter<$PrismaModel>
+}
+
+export type NestedUuidNullableFilter<$PrismaModel = never> = {
+  equals?: string | Prisma.StringFieldRefInput<$PrismaModel> | null
+  in?: string[] | Prisma.ListStringFieldRefInput<$PrismaModel> | null
+  notIn?: string[] | Prisma.ListStringFieldRefInput<$PrismaModel> | null
+  lt?: string | Prisma.StringFieldRefInput<$PrismaModel>
+  lte?: string | Prisma.StringFieldRefInput<$PrismaModel>
+  gt?: string | Prisma.StringFieldRefInput<$PrismaModel>
+  gte?: string | Prisma.StringFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedUuidNullableFilter<$PrismaModel> | string | null
+}
+
+export type NestedUuidNullableWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: string | Prisma.StringFieldRefInput<$PrismaModel> | null
+  in?: string[] | Prisma.ListStringFieldRefInput<$PrismaModel> | null
+  notIn?: string[] | Prisma.ListStringFieldRefInput<$PrismaModel> | null
+  lt?: string | Prisma.StringFieldRefInput<$PrismaModel>
+  lte?: string | Prisma.StringFieldRefInput<$PrismaModel>
+  gt?: string | Prisma.StringFieldRefInput<$PrismaModel>
+  gte?: string | Prisma.StringFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedUuidNullableWithAggregatesFilter<$PrismaModel> | string | null
+  _count?: Prisma.NestedIntNullableFilter<$PrismaModel>
+  _min?: Prisma.NestedStringNullableFilter<$PrismaModel>
+  _max?: Prisma.NestedStringNullableFilter<$PrismaModel>
 }
 
 

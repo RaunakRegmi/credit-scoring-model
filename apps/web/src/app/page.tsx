@@ -3,9 +3,10 @@
 import { useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { AlertCircle, ArrowLeft, FileText } from 'lucide-react';
-import type { CreditAssessmentResult } from '@aics/contracts';
+import { CAN_REVIEW_APPLICATIONS, type CreditAssessmentResult } from '@aics/contracts';
 
 import { ApplicationForm, type SubmitPayload } from '@/components/application-form';
+import { useAuth } from '@/components/auth-provider';
 import { DecisionBanner } from '@/components/decision-banner';
 import { PillarBreakdown } from '@/components/pillar-breakdown';
 import { ScoreGauge } from '@/components/score-gauge';
@@ -27,6 +28,7 @@ import { formatDateTime, formatNpr, humanise } from '@/lib/utils';
  */
 export default function DashboardPage(): React.ReactElement {
   const [result, setResult] = useState<CreditAssessmentResult | null>(null);
+  const { can } = useAuth();
 
   const assessment = useMutation({
     mutationFn: async (payload: SubmitPayload): Promise<CreditAssessmentResult> => {
@@ -42,16 +44,29 @@ export default function DashboardPage(): React.ReactElement {
     onSuccess: setResult,
   });
 
+  // Intake is a credit-officer function. A compliance officer has read access to decisions
+  // through the queue and the referral view, and no business creating applications.
+  if (!can(CAN_REVIEW_APPLICATIONS)) {
+    return (
+      <main className="mx-auto w-full max-w-3xl px-4 py-10 sm:px-6">
+        <div className="card px-5 py-6">
+          <h1 className="text-lg font-semibold text-[var(--color-ink)]">New assessment</h1>
+          <p className="mt-1 text-sm text-[var(--color-ink-muted)]">
+            Your role does not include creating applications. The review queue is available from
+            the navigation above.
+          </p>
+        </div>
+      </main>
+    );
+  }
+
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-6xl flex-col gap-6 px-4 py-8 sm:px-6 lg:px-8">
+    <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-4 py-8 sm:px-6 lg:px-8">
       <header className="flex flex-col gap-3">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <p className="text-xs font-semibold tracking-widest text-[var(--color-brand)] uppercase">
-              Fintara Solutions · ONE BNPL
-            </p>
-            <h1 className="mt-1 text-2xl font-semibold text-[var(--color-ink)] sm:text-3xl">
-              Credit Assessment
+            <h1 className="text-2xl font-semibold text-[var(--color-ink)] sm:text-3xl">
+              New assessment
             </h1>
             <p className="mt-1 text-sm text-[var(--color-ink-muted)]">
               Four-pillar AI credit scoring for unsecured lending — financial, professional, social

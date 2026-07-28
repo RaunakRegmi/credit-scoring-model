@@ -211,7 +211,19 @@ export const ActorType = {
   UNDERWRITER: 'UNDERWRITER',
   CREDIT_MANAGER: 'CREDIT_MANAGER',
   COMPLIANCE_OFFICER: 'COMPLIANCE_OFFICER',
-  APPLICANT: 'APPLICANT'
+  APPLICANT: 'APPLICANT',
+  ADMIN: 'ADMIN'
 } as const
 
 export type ActorType = (typeof ActorType)[keyof typeof ActorType]
+
+
+export const StaffRole = {
+  UNDERWRITER: 'UNDERWRITER',
+  SENIOR_UNDERWRITER: 'SENIOR_UNDERWRITER',
+  CREDIT_MANAGER: 'CREDIT_MANAGER',
+  COMPLIANCE_OFFICER: 'COMPLIANCE_OFFICER',
+  ADMIN: 'ADMIN'
+} as const
+
+export type StaffRole = (typeof StaffRole)[keyof typeof StaffRole]

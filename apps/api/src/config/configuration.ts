@@ -29,6 +29,39 @@ const envSchema = z.object({
     .string()
     .regex(/^[0-9a-fA-F]{64}$/, 'FIELD_HASH_KEY must be 64 hex characters (openssl rand -hex 32)'),
 
+  /**
+   * HS256 signing key for staff access tokens. Minimum 32 bytes of entropy, hex encoded — the
+   * same generation command as the other keys, so there is one thing to remember.
+   *
+   * No default. A signing key with a default is a signing key everyone with the repository can
+   * forge tokens against, and a forged token here is an underwriter session.
+   */
+  JWT_SECRET: z
+    .string()
+    .regex(/^[0-9a-fA-F]{64,}$/, 'JWT_SECRET must be at least 64 hex characters (openssl rand -hex 32)'),
+
+  /**
+   * Access tokens are short-lived because they are not revocable; the refresh session is the
+   * revocable half of the pair. Fifteen minutes bounds how long a stolen access token is useful
+   * without making the dashboard re-authenticate mid-review.
+   */
+  ACCESS_TOKEN_TTL_SECONDS: z.coerce.number().int().min(60).max(3600).default(900),
+  /** One working day. A refresh session outliving a shift is a session nobody is watching. */
+  REFRESH_TOKEN_TTL_HOURS: z.coerce.number().int().min(1).max(168).default(9),
+
+  /** Consecutive failures before an account is locked. */
+  LOGIN_MAX_ATTEMPTS: z.coerce.number().int().min(3).max(20).default(5),
+  LOGIN_LOCKOUT_MINUTES: z.coerce.number().int().min(1).max(1440).default(15),
+
+  /**
+   * Bootstrap administrator, created by the seed if absent. Provisioned with
+   * `mustChangePassword`, so the seeded credential cannot be used to do work — only to set a
+   * real one. Both blank means "do not create an administrator", which is the correct default
+   * for any environment whose accounts come from an identity provider.
+   */
+  BOOTSTRAP_ADMIN_EMAIL: z.string().default(''),
+  BOOTSTRAP_ADMIN_PASSWORD: z.string().default(''),
+
   STORAGE_ROOT: z.string().default('./storage'),
   MAX_UPLOAD_BYTES: z.coerce.number().int().positive().default(10 * 1024 * 1024),
 
@@ -63,6 +96,15 @@ export interface AppConfig {
   readonly crypto: {
     readonly encryptionKey: string;
     readonly hashKey: string;
+  };
+  readonly auth: {
+    readonly jwtSecret: string;
+    readonly accessTokenTtlSeconds: number;
+    readonly refreshTokenTtlHours: number;
+    readonly loginMaxAttempts: number;
+    readonly loginLockoutMinutes: number;
+    /** `null` when no bootstrap administrator should be created. */
+    readonly bootstrapAdmin: { readonly email: string; readonly password: string } | null;
   };
   readonly storage: {
     readonly root: string;
@@ -99,6 +141,31 @@ export function loadConfig(source: NodeJS.ProcessEnv = process.env): AppConfig {
 
   const env = parsed.data;
 
+  // A signing key of one repeated byte passes the hex regex and is worthless. Same reasoning as
+  // the placeholder rejection in FieldCrypto: the failure mode this guards against is a key that
+  // was never generated, and nothing else in the system would complain.
+  const secretBytes = Buffer.from(env.JWT_SECRET, 'hex');
+  if (secretBytes.every((byte) => byte === secretBytes[0])) {
+    throw new Error(
+      'JWT_SECRET is a placeholder value. Generate a real key with: openssl rand -hex 32',
+    );
+  }
+
+  const bootstrapEmail = env.BOOTSTRAP_ADMIN_EMAIL.trim().toLowerCase();
+  const bootstrapPassword = env.BOOTSTRAP_ADMIN_PASSWORD;
+
+  // Half-configured is the dangerous state: an operator who set the email and expects an account
+  // to exist, and a system that silently created nothing.
+  if ((bootstrapEmail === '') !== (bootstrapPassword === '')) {
+    throw new Error(
+      'BOOTSTRAP_ADMIN_EMAIL and BOOTSTRAP_ADMIN_PASSWORD must be set together, or both left ' +
+        'blank to skip creating an administrator.',
+    );
+  }
+  if (bootstrapPassword !== '' && bootstrapPassword.length < 12) {
+    throw new Error('BOOTSTRAP_ADMIN_PASSWORD must be at least 12 characters.');
+  }
+
   if (env.NODE_ENV === 'production' && !env.DATABASE_URL.includes('sslmode=')) {
     if (!env.ALLOW_INSECURE_DB) {
       throw new Error(
@@ -123,6 +190,17 @@ export function loadConfig(source: NodeJS.ProcessEnv = process.env): AppConfig {
     crypto: {
       encryptionKey: env.FIELD_ENCRYPTION_KEY,
       hashKey: env.FIELD_HASH_KEY,
+    },
+    auth: {
+      jwtSecret: env.JWT_SECRET,
+      accessTokenTtlSeconds: env.ACCESS_TOKEN_TTL_SECONDS,
+      refreshTokenTtlHours: env.REFRESH_TOKEN_TTL_HOURS,
+      loginMaxAttempts: env.LOGIN_MAX_ATTEMPTS,
+      loginLockoutMinutes: env.LOGIN_LOCKOUT_MINUTES,
+      bootstrapAdmin:
+        bootstrapEmail === '' || bootstrapPassword === ''
+          ? null
+          : { email: bootstrapEmail, password: bootstrapPassword },
     },
     storage: {
       root: env.STORAGE_ROOT,

@@ -68,7 +68,9 @@ export const ModelName = {
   DecisionAudit: 'DecisionAudit',
   PolicyRuleEvaluation: 'PolicyRuleEvaluation',
   UnderwriterReview: 'UnderwriterReview',
-  ModelVersion: 'ModelVersion'
+  ModelVersion: 'ModelVersion',
+  StaffUser: 'StaffUser',
+  StaffSession: 'StaffSession'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -424,11 +426,14 @@ export const UnderwriterReviewScalarFieldEnum = {
   applicationId: 'applicationId',
   reviewerId: 'reviewerId',
   reviewerName: 'reviewerName',
+  reviewerRole: 'reviewerRole',
   decision: 'decision',
+  systemDecision: 'systemDecision',
   justification: 'justification',
   overrodeModel: 'overrodeModel',
   dualAuthById: 'dualAuthById',
   dualAuthByName: 'dualAuthByName',
+  dualAuthByRole: 'dualAuthByRole',
   dualAuthAt: 'dualAuthAt',
   approvedLimitNpr: 'approvedLimitNpr',
   reviewedAt: 'reviewedAt'
@@ -454,6 +459,40 @@ export const ModelVersionScalarFieldEnum = {
 } as const
 
 export type ModelVersionScalarFieldEnum = (typeof ModelVersionScalarFieldEnum)[keyof typeof ModelVersionScalarFieldEnum]
+
+
+export const StaffUserScalarFieldEnum = {
+  id: 'id',
+  email: 'email',
+  fullName: 'fullName',
+  passwordHash: 'passwordHash',
+  mustChangePassword: 'mustChangePassword',
+  role: 'role',
+  isActive: 'isActive',
+  failedLoginAttempts: 'failedLoginAttempts',
+  lockedUntil: 'lockedUntil',
+  lastLoginAt: 'lastLoginAt',
+  passwordChangedAt: 'passwordChangedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type StaffUserScalarFieldEnum = (typeof StaffUserScalarFieldEnum)[keyof typeof StaffUserScalarFieldEnum]
+
+
+export const StaffSessionScalarFieldEnum = {
+  id: 'id',
+  staffUserId: 'staffUserId',
+  tokenHash: 'tokenHash',
+  issuedAt: 'issuedAt',
+  expiresAt: 'expiresAt',
+  revokedAt: 'revokedAt',
+  rotatedToId: 'rotatedToId',
+  userAgent: 'userAgent',
+  ipAddress: 'ipAddress'
+} as const
+
+export type StaffSessionScalarFieldEnum = (typeof StaffSessionScalarFieldEnum)[keyof typeof StaffSessionScalarFieldEnum]
 
 
 export const SortOrder = {

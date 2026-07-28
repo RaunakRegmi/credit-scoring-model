@@ -204,6 +204,24 @@ enum ActorType {
   CREDIT_MANAGER
   COMPLIANCE_OFFICER
   APPLICANT
+  ADMIN
+}
+
+/// Internal staff authorisation levels.
+///
+/// Deliberately separate from `ActorType`: that enum answers "who acted" on an audit row and
+/// includes non-staff actors (`SYSTEM`, `APPLICANT`), whereas this one answers "what may this
+/// login do". Mapping between them lives in `@aics/contracts` so the audit trail and the access
+/// check cannot drift apart.
+///
+/// Ordering is significant — `STAFF_ROLE_AUTHORITY` in contracts ranks these, and SOP-004's
+/// dual-authorisation check compares ranks rather than string equality.
+enum StaffRole {
+  UNDERWRITER
+  SENIOR_UNDERWRITER
+  CREDIT_MANAGER
+  COMPLIANCE_OFFICER
+  ADMIN
 }
 
 // =============================================================================
@@ -804,18 +822,28 @@ model UnderwriterReview {
   applicationId String          @db.Uuid
   application   LoanApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
 
-  reviewerId   String   @db.VarChar(100)
-  reviewerName String   @db.VarChar(200)
+  /// Not a foreign key on purpose. A review is a permanent record of who decided what; if a
+  /// staff account is later deleted, the review must survive it rather than cascade away.
+  reviewerId   String    @db.VarChar(100)
+  reviewerName String    @db.VarChar(200)
+  /// Authority the reviewer held *at the time*. A later promotion or demotion must not
+  /// retroactively change what an auditor sees.
+  reviewerRole StaffRole @default(UNDERWRITER)
 
   decision Decision
+  /// What the engine recommended when the review was opened. Stored so one row answers the
+  /// auditor's actual question — "did a human overrule the system, and on what grounds" —
+  /// without reconstructing the score history.
+  systemDecision Decision @default(REFER_UNDERWRITER)
   /// SOP-004: written justification is mandatory when overriding the model.
   justification String  @db.Text
   overrodeModel Boolean @default(false)
 
   /// SOP-004: approving above the AI recommendation needs a second authoriser.
-  dualAuthById   String?   @db.VarChar(100)
-  dualAuthByName String?   @db.VarChar(200)
-  dualAuthAt     DateTime?
+  dualAuthById     String?    @db.VarChar(100)
+  dualAuthByName   String?    @db.VarChar(200)
+  dualAuthByRole   StaffRole?
+  dualAuthAt       DateTime?
 
   approvedLimitNpr Decimal? @db.Decimal(18, 2)
 
@@ -823,6 +851,7 @@ model UnderwriterReview {
 
   @@index([applicationId])
   @@index([reviewerId])
+  @@index([reviewedAt])
   @@map("underwriter_review")
 }
 
@@ -853,4 +882,84 @@ model ModelVersion {
   @@unique([name, version])
   @@index([kind, isChampion])
   @@map("model_version")
+}
+
+// =============================================================================
+// STAFF IDENTITY & ACCESS  (§10.1 access control, §12.1 delegated authority)
+// =============================================================================
+
+/// An internal operator of the system — underwriter, credit manager, compliance officer,
+/// administrator.
+///
+/// Deliberately a separate table from `Applicant`. These are the people who *use* the engine,
+/// not the people it assesses, and putting operator credentials alongside encrypted national
+/// IDs would widen the blast radius of either table being compromised.
+///
+/// In a bank deployment this table is expected to become a mirror of the institution's identity
+/// provider rather than the primary credential store: `passwordHash` goes null and the SSO
+/// subject becomes authoritative. The shape is chosen so that migration adds a column instead
+/// of rewriting the access model.
+model StaffUser {
+  id String @id @default(uuid()) @db.Uuid
+
+  email    String @unique @db.VarChar(254)
+  fullName String @db.VarChar(200)
+
+  /// scrypt, stored PHC-style: algorithm, work factor, salt and digest in one string. The
+  /// parameters travel with the credential, so the work factor can be raised for new
+  /// passwords without invalidating existing ones or migrating the column.
+  passwordHash String @db.VarChar(255)
+  /// Set on every provisioned account. A seeded credential that cannot be used to do work
+  /// until it is changed is the difference between a bootstrap and a backdoor.
+  mustChangePassword Boolean @default(true)
+
+  role     StaffRole
+  isActive Boolean   @default(true)
+
+  /// Consecutive authentication failures. Cleared on success, not on a timer, so a slow
+  /// guessing attack cannot outwait the counter.
+  failedLoginAttempts Int       @default(0)
+  lockedUntil         DateTime?
+  lastLoginAt         DateTime?
+  passwordChangedAt   DateTime  @default(now())
+
+  sessions StaffSession[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([role])
+  @@index([isActive])
+  @@map("staff_user")
+}
+
+/// One refresh-token grant.
+///
+/// Sessions are rows rather than self-contained stateless tokens for one reason: revocation.
+/// "Terminate this person's access now" is an access-control requirement a bank will actually
+/// exercise, and a stateless refresh token cannot satisfy it. The token is stored only as a
+/// SHA-256 digest, so disclosure of this table does not hand over live sessions.
+model StaffSession {
+  id String @id @default(uuid()) @db.Uuid
+
+  staffUserId String    @db.Uuid
+  staffUser   StaffUser @relation(fields: [staffUserId], references: [id], onDelete: Cascade)
+
+  /// SHA-256 of the refresh token. Unkeyed is adequate here and keyed would not help: the
+  /// token is 256 bits of CSPRNG output, so there is no guessable preimage to protect.
+  tokenHash String @unique @db.Char(64)
+
+  issuedAt  DateTime  @default(now())
+  expiresAt DateTime
+  revokedAt DateTime?
+  /// Set when a rotation replaced this session. Presenting a rotated token is evidence of
+  /// theft rather than of ordinary use, and is handled as such.
+  rotatedToId String? @db.Uuid
+
+  userAgent String? @db.VarChar(300)
+  ipAddress String? @db.VarChar(60)
+
+  @@index([staffUserId])
+  @@index([expiresAt])
+  @@map("staff_session")
 }

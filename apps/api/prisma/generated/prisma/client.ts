@@ -136,3 +136,28 @@ export type UnderwriterReview = Prisma.UnderwriterReviewModel
  * "which model scored this application, and how did it perform".
  */
 export type ModelVersion = Prisma.ModelVersionModel
+/**
+ * Model StaffUser
+ * An internal operator of the system — underwriter, credit manager, compliance officer,
+ * administrator.
+ * 
+ * Deliberately a separate table from `Applicant`. These are the people who *use* the engine,
+ * not the people it assesses, and putting operator credentials alongside encrypted national
+ * IDs would widen the blast radius of either table being compromised.
+ * 
+ * In a bank deployment this table is expected to become a mirror of the institution's identity
+ * provider rather than the primary credential store: `passwordHash` goes null and the SSO
+ * subject becomes authoritative. The shape is chosen so that migration adds a column instead
+ * of rewriting the access model.
+ */
+export type StaffUser = Prisma.StaffUserModel
+/**
+ * Model StaffSession
+ * One refresh-token grant.
+ * 
+ * Sessions are rows rather than self-contained stateless tokens for one reason: revocation.
+ * "Terminate this person's access now" is an access-control requirement a bank will actually
+ * exercise, and a stateless refresh token cannot satisfy it. The token is stored only as a
+ * SHA-256 digest, so disclosure of this table does not hand over live sessions.
+ */
+export type StaffSession = Prisma.StaffSessionModel

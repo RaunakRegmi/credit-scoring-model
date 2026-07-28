@@ -20,6 +20,7 @@ import {
 } from '@nestjs/common';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import {
+  CAN_REVIEW_APPLICATIONS,
   DOCUMENT_TYPES,
   RESIDENCE_STATUSES,
   createApplicationSchema,
@@ -29,6 +30,7 @@ import {
 } from '@aics/contracts';
 import { z } from 'zod';
 
+import { Roles } from '../auth/auth.decorators';
 import { APP_CONFIG, type AppConfig } from '../config/configuration';
 
 import {
@@ -68,6 +70,15 @@ interface UploadedFileMap {
   readonly statement?: UploadedFile[];
 }
 
+/**
+ * Every route here requires an authenticated staff session — the global guard in `AuthModule`
+ * closes them by default and none of them opt out.
+ *
+ * This is a staff-operated intake, not a public applicant portal: an underwriter or credit
+ * officer captures the application and uploads the documents. A self-service portal would need
+ * its own controller with applicant-scoped authorisation, because "any authenticated staff member
+ * may read any assessment" is correct for internal use and completely wrong for an applicant.
+ */
 @Controller('api/credit-assessment')
 export class CreditAssessmentController {
   constructor(
@@ -76,6 +87,7 @@ export class CreditAssessmentController {
   ) {}
 
   /** SOP-001 steps 1–5: create the application and capture consent. */
+  @Roles(...CAN_REVIEW_APPLICATIONS)
   @Post('applications')
   async createApplication(@Body() body: unknown): Promise<{ id: string; arn: string }> {
     const parsed = createApplicationSchema.safeParse(body);
@@ -98,6 +110,7 @@ export class CreditAssessmentController {
    * inside a request, and returning the decision directly avoids the applicant polling for a
    * result that is already computed.
    */
+  @Roles(...CAN_REVIEW_APPLICATIONS)
   @Post('applications/:id/documents')
   @HttpCode(200)
   @UseInterceptors(
@@ -159,7 +172,12 @@ export class CreditAssessmentController {
     return this.service.processDocumentUpload(applicationId, resume, statement, options);
   }
 
-  /** Latest assessment for an application. */
+  /**
+   * Latest assessment for an application.
+   *
+   * No `@Roles` — readable by any authenticated staff member, compliance included. Read access to
+   * a decision is exactly what a compliance officer's job requires; write access is not.
+   */
   @Get('applications/:id')
   async getAssessment(
     @Param('id', ParseUUIDPipe) applicationId: string,

@@ -11,6 +11,7 @@
 import { Controller, Get, HttpCode } from '@nestjs/common';
 import { CURRENT_FEATURE_SET_VERSION } from '@aics/contracts';
 
+import { Public } from '../auth/auth.decorators';
 import { PrismaService } from '../prisma/prisma.service';
 import { MlScoringClient } from '../scoring/ml-scoring.client';
 import { SCORECARD_VERSION } from '../scoring/scorecard.service';
@@ -32,6 +33,15 @@ interface ReadinessReport {
   };
 }
 
+/**
+ * Both probes are `@Public()`.
+ *
+ * They have to be: Docker's health check and any orchestrator's readiness probe hold no
+ * credential. What they disclose is bounded to component reachability and version strings — no
+ * applicant data, no counts, nothing about who has an account. In a bank deployment these are
+ * additionally expected to be reachable only from inside the cluster, since the ingress that
+ * fronts this API is the thing publishing routes to the internet.
+ */
 @Controller()
 export class HealthController {
   constructor(
@@ -40,12 +50,14 @@ export class HealthController {
     private readonly policy: PolicyService,
   ) {}
 
+  @Public()
   @Get('healthz')
   @HttpCode(200)
   liveness(): { status: 'ok' } {
     return { status: 'ok' };
   }
 
+  @Public()
   @Get('readyz')
   async readiness(): Promise<ReadinessReport> {
     const [database, mlReachable] = await Promise.all([this.prisma.ping(), this.ml.healthy()]);
