@@ -1,0 +1,31 @@
+node_modules/
+dist/
+build/
+.next/
+out/
+coverage/
+*.tsbuildinfo
+
+.env
+.env.local
+.env.*.local
+
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Trained model artifacts are reproducible via `python -m train.train`
+apps/ml/artifacts/*.json
+apps/ml/artifacts/*.ubj
+apps/ml/artifacts/*.pkl
+
+# Uploaded applicant documents — never commit (PII, §10.1)
+storage/
+uploads/
+
+.DS_Store
+*.log

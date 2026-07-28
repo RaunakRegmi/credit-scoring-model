@@ -1,0 +1,35 @@
+{
+  "name": "@aics/contracts",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Shared contracts for the ONE BNPL AICS model. Single source of truth for the feature vector, scoring payloads, domain enums and policy configuration.",
+  "license": "UNLICENSED",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./feature-set.v1.json": "./feature-set.v1.json"
+  },
+  "files": [
+    "dist",
+    "feature-set.v1.json"
+  ],
+  "scripts": {
+    "codegen": "tsx scripts/generate-types.ts",
+    "build": "npm run codegen && tsc -p tsconfig.build.json",
+    "typecheck": "npm run codegen && tsc --noEmit",
+    "test": "npm run codegen && vitest run"
+  },
+  "dependencies": {
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^22.7.5",
+    "tsx": "^4.19.1",
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.3"
+  }
+}
