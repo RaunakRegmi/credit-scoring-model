@@ -33,11 +33,18 @@ COPY apps/api ./apps/api
 RUN npm run build -w @aics/contracts
 
 WORKDIR /repo/apps/api
+# `prisma generate` needs only the schema, never a connection — see the note in prisma.config.ts
+# about why DATABASE_URL is deliberately absent from the build context.
 RUN npx prisma generate && npx nest build
 
 # Prune to production dependencies in place, so the runtime stage can copy a ready tree.
 WORKDIR /repo
 RUN npm prune --omit=dev
+
+# npm workspaces hoist dependencies to the root, so a per-workspace node_modules exists only when
+# there is a version conflict to resolve. `COPY` fails on a missing source, which would make the
+# image build depend on whether hoisting happened to leave a directory behind. Guarantee it.
+RUN mkdir -p /repo/apps/api/node_modules
 
 # ---------- runtime ----------
 FROM node:22-slim AS runtime

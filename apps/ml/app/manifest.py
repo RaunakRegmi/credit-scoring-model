@@ -16,6 +16,7 @@ system that produces no error and silently degrades every prediction.
 from __future__ import annotations
 
 import json
+import os
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
@@ -23,14 +24,40 @@ from typing import Literal
 
 MANIFEST_FILENAME = "feature-set.v1.json"
 
-# Searched in order: the monorepo layout first, then the Docker image layout where the
-# manifest is copied next to the application.
-_SEARCH_PATHS = (
-    Path(__file__).resolve().parents[3] / "packages" / "contracts" / MANIFEST_FILENAME,
-    Path(__file__).resolve().parents[1] / "contracts" / MANIFEST_FILENAME,
-    Path(__file__).resolve().parents[1] / MANIFEST_FILENAME,
-    Path("/app/contracts") / MANIFEST_FILENAME,
-)
+
+def _search_paths() -> tuple[Path, ...]:
+    """Candidate manifest locations, in priority order.
+
+    Built as a function rather than a module-level tuple, and each ancestor index is bounds-checked
+    against how deep this file actually sits. In the monorepo ``manifest.py`` is four levels below
+    the repository root; in the Docker image it is two levels below ``/app``. Indexing ``parents[3]``
+    unconditionally raises ``IndexError`` in the shallower layout — at import time, before any error
+    handling — which is precisely how this broke the container build while working locally.
+    """
+    here = Path(__file__).resolve()
+    ancestors = here.parents
+
+    candidates: list[Path] = []
+
+    # Monorepo: apps/ml/app/manifest.py -> <repo>/packages/contracts/
+    if len(ancestors) > 3:
+        candidates.append(ancestors[3] / "packages" / "contracts" / MANIFEST_FILENAME)
+
+    # Container: /app/app/manifest.py -> /app/contracts/ (the Dockerfile copies it here).
+    if len(ancestors) > 1:
+        candidates.append(ancestors[1] / "contracts" / MANIFEST_FILENAME)
+        candidates.append(ancestors[1] / MANIFEST_FILENAME)
+
+    # Absolute fallbacks, independent of this file's location.
+    candidates.append(Path("/app/contracts") / MANIFEST_FILENAME)
+    candidates.append(Path.cwd() / "contracts" / MANIFEST_FILENAME)
+
+    # An explicit override wins over everything, for deployments that mount it elsewhere.
+    override = os.environ.get("AICS_FEATURE_MANIFEST")
+    if override:
+        return (Path(override), *candidates)
+
+    return tuple(candidates)
 
 Pillar = Literal["FINANCIAL", "PROFESSIONAL", "SOCIAL", "BEHAVIORAL", "APPLICATION"]
 
@@ -101,10 +128,11 @@ class FeatureManifest:
 
 
 def _resolve_manifest_path() -> Path:
-    for candidate in _SEARCH_PATHS:
+    candidates = _search_paths()
+    for candidate in candidates:
         if candidate.is_file():
             return candidate
-    searched = "\n  ".join(str(path) for path in _SEARCH_PATHS)
+    searched = "\n  ".join(str(path) for path in candidates)
     raise FileNotFoundError(
         f"Could not locate {MANIFEST_FILENAME}. Searched:\n  {searched}\n"
         "The scoring service cannot start without it — it defines the model's input contract."

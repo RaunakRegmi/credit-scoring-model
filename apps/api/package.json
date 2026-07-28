@@ -2,11 +2,11 @@
   "name": "@aics/api",
   "version": "1.0.0",
   "private": true,
-  "description": "ONE BNPL AICS — NestJS API. Document ingestion, feature engineering, four-pillar scorecard and credit decisioning.",
+  "description": "ONE BNPL AICS \u2014 NestJS API. Document ingestion, feature engineering, four-pillar scorecard and credit decisioning.",
   "license": "UNLICENSED",
   "scripts": {
     "build": "nest build",
-    "//start": "Output nests under dist/src because rootDir spans both src/ and prisma/ — Prisma 7 emits the client as TypeScript source that must be compiled with the app.",
+    "//start": "Output nests under dist/src because rootDir spans both src/ and prisma/ \u2014 Prisma 7 emits the client as TypeScript source that must be compiled with the app.",
     "start": "node dist/src/main.js",
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
@@ -25,6 +25,9 @@
   "prisma": {
     "seed": "nest build && node dist/prisma/seed.js"
   },
+  "dependencyNotes": {
+    "prisma": "A runtime dependency, not dev-only, so `prisma migrate deploy` can run from the release image. The Dockerfile prunes dev dependencies into the runtime layer; leaving the CLI in devDependencies made schema migration impossible from the very artifact being deployed."
+  },
   "dependencies": {
     "@aics/contracts": "*",
     "@nestjs/common": "^11.1.28",
@@ -35,6 +38,7 @@
     "@prisma/client": "^7.9.1",
     "mammoth": "^1.12.0",
     "pg": "^8.22.0",
+    "prisma": "^7.9.1",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
     "unpdf": "^1.8.0",
@@ -51,7 +55,6 @@
     "@typescript-eslint/eslint-plugin": "^8.20.0",
     "@typescript-eslint/parser": "^8.20.0",
     "eslint": "^9.18.0",
-    "prisma": "^7.9.1",
     "tsx": "^4.23.1",
     "typescript": "^5.6.3",
     "vitest": "^4.1.10"

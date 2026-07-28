@@ -26,6 +26,10 @@ ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
 WORKDIR /repo/apps/web
 RUN npx next build
 
+# npm workspaces hoist to the root, so this directory exists only when a version conflict forced
+# it. `COPY` fails on a missing source; guarantee it rather than depend on hoisting behaviour.
+RUN mkdir -p /repo/apps/web/node_modules
+
 # ---------- runtime ----------
 FROM node:22-slim AS runtime
 
