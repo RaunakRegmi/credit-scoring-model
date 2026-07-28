@@ -1,0 +1,59 @@
+{
+  "name": "@aics/api",
+  "version": "1.0.0",
+  "private": true,
+  "description": "ONE BNPL AICS — NestJS API. Document ingestion, feature engineering, four-pillar scorecard and credit decisioning.",
+  "license": "UNLICENSED",
+  "scripts": {
+    "build": "nest build",
+    "//start": "Output nests under dist/src because rootDir spans both src/ and prisma/ — Prisma 7 emits the client as TypeScript source that must be compiled with the app.",
+    "start": "node dist/src/main.js",
+    "start:dev": "nest start --watch",
+    "start:debug": "nest start --debug --watch",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint \"src/**/*.ts\" --max-warnings 0",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:migrate:deploy": "prisma migrate deploy",
+    "db:push": "prisma db push",
+    "db:studio": "prisma studio",
+    "//db:seed": "Runs from compiled output, not tsx. tsx uses esbuild, which cannot emit emitDecoratorMetadata, so Nest silently fails to inject constructor params that are not explicitly @Inject-ed. Compiling with tsc is also what production runs.",
+    "db:seed": "nest build && node dist/prisma/seed.js"
+  },
+  "prisma": {
+    "seed": "nest build && node dist/prisma/seed.js"
+  },
+  "dependencies": {
+    "@aics/contracts": "*",
+    "@nestjs/common": "^11.1.28",
+    "@nestjs/config": "^4.0.4",
+    "@nestjs/core": "^11.1.28",
+    "@nestjs/platform-express": "^11.1.28",
+    "@prisma/adapter-pg": "^7.9.1",
+    "@prisma/client": "^7.9.1",
+    "mammoth": "^1.12.0",
+    "pg": "^8.22.0",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.1",
+    "unpdf": "^1.8.0",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@nestjs/cli": "^11.0.10",
+    "@nestjs/schematics": "^11.0.9",
+    "@nestjs/testing": "^11.1.28",
+    "@types/express": "^5.0.0",
+    "@types/multer": "^1.4.12",
+    "@types/node": "^22.7.5",
+    "@types/pg": "^8.20.0",
+    "@typescript-eslint/eslint-plugin": "^8.20.0",
+    "@typescript-eslint/parser": "^8.20.0",
+    "eslint": "^9.18.0",
+    "prisma": "^7.9.1",
+    "tsx": "^4.23.1",
+    "typescript": "^5.6.3",
+    "vitest": "^4.1.10"
+  }
+}

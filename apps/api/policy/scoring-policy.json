@@ -1,0 +1,50 @@
+{
+  "$comment": [
+    "ONE BNPL AICS — live credit policy.",
+    "",
+    "Thresholds Credit, Risk or Compliance may need to move without a code deploy. Loaded",
+    "and zod-validated at boot by PolicyService; if this file is absent or invalid the",
+    "service falls back to DEFAULT_SCORING_POLICY in @aics/contracts and logs loudly.",
+    "",
+    "Changing anything here changes lending decisions. Treat it as a reviewed change."
+  ],
+  "version": "1.0.0",
+  "effectiveFrom": "2026-05-01",
+
+  "autoApproveMinScore": 750,
+  "extractionMinConfidence": 0.85,
+  "minStatementMonths": 6,
+  "dsrOverrideThreshold": 0.6,
+  "kycFaceMatchMinConfidence": 0.9,
+  "activeLoanOverleverageCount": 3,
+  "mlDivergenceThreshold": 0.25,
+
+  "lgdByProduct": {
+    "BNPL": 0.9,
+    "PERSONAL_LOAN": 0.85,
+    "HIRE_PURCHASE": 0.45,
+    "AUTO_LOAN": 0.4,
+    "MICRO_BNPL": 0.95
+  },
+
+  "geopoliticalAdjustment": {
+    "enabled": false,
+    "requiresLegalSignOff": true,
+    "legalSignOffReference": null,
+    "adjustments": {
+      "MM": -45,
+      "SAARC": -15,
+      "OECD": 0
+    },
+    "groups": {
+      "SAARC": ["AF", "BD", "BT", "IN", "MV", "NP", "PK", "LK"],
+      "OECD": [
+        "AU", "AT", "BE", "CA", "CL", "CO", "CR", "CZ", "DK", "EE", "FI", "FR",
+        "DE", "GR", "HU", "IS", "IE", "IL", "IT", "JP", "KR", "LV", "LT", "LU",
+        "MX", "NL", "NZ", "NO", "PL", "PT", "SK", "SI", "ES", "SE", "CH", "TR",
+        "GB", "US"
+      ]
+    },
+    "fairLendingWarning": "Nationality-based score adjustment contradicts §10.2 (demographic neutrality) and constitutes national-origin discrimination in lending. DISABLED pending written Legal and Compliance sign-off. Use AML/CFT sanctions screening (§10.3) for defensible country risk instead."
+  }
+}

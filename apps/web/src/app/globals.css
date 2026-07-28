@@ -1,0 +1,125 @@
+@import 'tailwindcss';
+
+/**
+ * Design tokens.
+ *
+ * Tailwind 4 is configured in CSS rather than a JS config. The palette is deliberately
+ * restrained: this is a credit decisioning console that underwriters read all day, and the only
+ * places colour is allowed to shout are the risk band and the decision, where it carries
+ * meaning. Everything else stays neutral so those two signals cannot be missed.
+ */
+@theme {
+  --color-canvas: oklch(98.4% 0.002 260);
+  --color-surface: oklch(100% 0 0);
+  --color-surface-muted: oklch(96.8% 0.003 260);
+  --color-line: oklch(91% 0.004 260);
+  --color-line-strong: oklch(84% 0.006 260);
+
+  --color-ink: oklch(21% 0.012 260);
+  --color-ink-muted: oklch(46% 0.011 260);
+  --color-ink-subtle: oklch(60% 0.009 260);
+
+  --color-brand: oklch(48% 0.15 258);
+  --color-brand-soft: oklch(95.5% 0.02 258);
+
+  /* Risk band accents, matching RISK_BAND_TABLE in @aics/contracts. */
+  --color-band-elite: oklch(58% 0.13 162);
+  --color-band-prime: oklch(62% 0.16 145);
+  --color-band-near: oklch(66% 0.16 122);
+  --color-band-sub: oklch(70% 0.15 85);
+  --color-band-high: oklch(64% 0.19 45);
+  --color-band-reject: oklch(56% 0.21 25);
+
+  --color-positive: oklch(58% 0.13 155);
+  --color-positive-soft: oklch(96% 0.03 155);
+  --color-negative: oklch(60% 0.18 35);
+  --color-negative-soft: oklch(96.5% 0.03 40);
+  --color-caution: oklch(70% 0.15 85);
+  --color-caution-soft: oklch(97% 0.04 85);
+
+  --font-sans:
+    ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
+    sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', Menlo, Monaco, 'Cascadia Mono', monospace;
+
+  --radius-card: 0.875rem;
+}
+
+@layer base {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    margin: 0;
+    background-color: var(--color-canvas);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Tabular figures throughout: scores and money in adjacent rows must line up vertically. */
+  .numeric {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum';
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-brand);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@layer utilities {
+  .card {
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-card);
+  }
+
+  /* Sweeps the gauge arc from empty to its final value on mount. */
+  @keyframes gauge-sweep {
+    from {
+      stroke-dashoffset: var(--gauge-empty);
+    }
+    to {
+      stroke-dashoffset: var(--gauge-offset);
+    }
+  }
+
+  .animate-gauge {
+    animation: gauge-sweep 1.1s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  }
+
+  @keyframes bar-grow {
+    from {
+      transform: scaleX(0);
+    }
+    to {
+      transform: scaleX(1);
+    }
+  }
+
+  .animate-bar {
+    transform-origin: left;
+    animation: bar-grow 0.8s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  }
+}

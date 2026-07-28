@@ -1,0 +1,856 @@
+// =============================================================================
+// ONE BNPL — AI Credit Scoring Model (AICS)
+// PostgreSQL 16 · Prisma 7
+//
+// Implements the tables described in §7.1 of the AICS Technical & Functional
+// Document, extended with the audit, policy and model-governance tables that
+// §10.4 and §6.4 require but §7.1 does not enumerate.
+//
+// Conventions
+//   · UUID primary keys throughout (§7.1).
+//   · Money is `Decimal(18, 2)` in NPR. Never Float — binary floating point and
+//     currency do not mix, and a rounding drift in a loan ledger is a defect.
+//   · Ratios and scores are `Decimal` with explicit precision for the same reason.
+//   · Everything hanging off an application cascades on delete, so the §10.1
+//     retention purge is a single delete rather than a bespoke script.
+//   · Columns holding PII are suffixed `Enc` and written only through the
+//     field-encryption client extension (src/prisma/encryption.extension.ts).
+// =============================================================================
+
+generator client {
+  provider = "prisma-client"
+  output   = "./generated/prisma"
+}
+
+// Prisma 7 no longer accepts `url` here. Migrate reads the connection string from
+// `prisma.config.ts`; the runtime client receives it through the `@prisma/adapter-pg`
+// driver adapter in src/prisma/prisma.service.ts.
+datasource db {
+  provider = "postgresql"
+}
+
+// =============================================================================
+// ENUMS
+// =============================================================================
+
+/// §1.2 product catalogue.
+enum ProductType {
+  BNPL
+  PERSONAL_LOAN
+  HIRE_PURCHASE
+  AUTO_LOAN
+  MICRO_BNPL
+}
+
+/// SOP-001 / SOP-002 application lifecycle.
+enum ApplicationStatus {
+  DRAFT
+  PENDING_DOCUMENTS
+  EXTRACTING
+  SCORING
+  DECIDED
+  UNDER_REVIEW
+  FAILED
+  EXPIRED
+}
+
+/// §5.1 risk bands.
+enum RiskBand {
+  ELITE_PRIME
+  PRIME
+  NEAR_PRIME
+  SUBPRIME
+  HIGH_RISK
+  REJECT
+}
+
+/// §5.1 decision outcomes.
+enum Decision {
+  AUTO_APPROVE
+  APPROVE_STANDARD
+  APPROVE_WITH_CONDITIONS
+  REFER_UNDERWRITER
+  DECLINE
+}
+
+/// §4.3 employer categories driving the employer-type premium.
+enum EmployerType {
+  MNC
+  COMMERCIAL_BANK
+  CORPORATE
+  GOVERNMENT
+  INTERNATIONAL_NGO
+  SME
+  INFORMAL
+}
+
+enum EducationLevel {
+  PHD
+  MASTERS
+  BACHELORS
+  DIPLOMA
+  HIGHER_SECONDARY
+  SECONDARY
+  NONE
+}
+
+enum ResidenceStatus {
+  OWNED
+  FAMILY_OWNED
+  RENTED
+  COMPANY_PROVIDED
+  UNDECLARED
+}
+
+enum ReferenceTier {
+  C_SUITE
+  DIRECTOR
+  SENIOR_MANAGER
+  MANAGER
+  PEER
+  UNKNOWN
+}
+
+/// §3.3.1 required and optional documents.
+enum DocumentType {
+  RESUME
+  BANK_STATEMENT
+  NID_FRONT
+  NID_BACK
+  PASSPORT
+  PAN_CARD
+  ADDRESS_PROOF
+  EMPLOYER_LETTER
+  SALARY_SLIP
+  BUSINESS_REGISTRATION
+  SELFIE
+}
+
+/// SOP-002 step 19–20 extraction outcomes.
+enum ExtractionStatus {
+  PENDING
+  SUCCEEDED
+  LOW_CONFIDENCE
+  FAILED
+}
+
+/// Outcome of an identity verification check.
+///
+/// Tri-state on purpose. "Not yet checked" and "checked and failed" are different facts and
+/// carry different consequences: §5.3 declines a *failed* NID verification, whereas an
+/// application whose KYC pipeline has simply not run yet should be held for review, not
+/// refused. Collapsing both into a boolean `false` declines every new applicant.
+enum KycVerificationStatus {
+  NOT_ATTEMPTED
+  VERIFIED
+  FAILED
+}
+
+/// §3.2.1 AI transaction classification taxonomy.
+enum TxnCategory {
+  SALARY
+  REMITTANCE
+  RENTAL_INCOME
+  BUSINESS_INCOME
+  INTEREST_INCOME
+  OTHER_CREDIT
+  LOAN_EMI
+  CREDIT_CARD_PAYMENT
+  INSURANCE_PREMIUM
+  UTILITY
+  RENT_PAID
+  ATM_WITHDRAWAL
+  GROCERY_ESSENTIAL
+  DISCRETIONARY
+  TRANSFER_OUT
+  BANK_CHARGE
+  BOUNCE_PENALTY
+  OTHER_DEBIT
+}
+
+enum TxnDirection {
+  CREDIT
+  DEBIT
+}
+
+/// §5.3 mandatory override conditions.
+enum OverrideCode {
+  AML_WATCHLIST_MATCH
+  KYC_FACE_MATCH_FAILURE
+  NID_VERIFICATION_FAILURE
+  ACTIVE_BANKRUPTCY
+  OVERLEVERAGED_THREE_PLUS_LOANS
+  FRAUDULENT_DOCUMENT_FLAG
+  DSR_ABOVE_60_PERCENT
+}
+
+enum RuleOutcome {
+  APPLIED
+  NOT_TRIGGERED
+  SKIPPED_DISABLED
+  ERRORED
+}
+
+/// Training-label origin. Ships as SYNTHETIC_SEED until §6.4 promotion.
+enum ModelProvenance {
+  SYNTHETIC_SEED
+  HISTORICAL_OUTCOMES
+  HYBRID
+}
+
+enum ActorType {
+  SYSTEM
+  UNDERWRITER
+  CREDIT_MANAGER
+  COMPLIANCE_OFFICER
+  APPLICANT
+}
+
+// =============================================================================
+// APPLICANT IDENTITY  (§7.1 applicant_profile)
+// =============================================================================
+
+model Applicant {
+  id String @id @default(uuid()) @db.Uuid
+
+  fullName   String  @db.VarChar(200)
+  fatherName String? @db.VarChar(200)
+
+  /// AES-256-GCM ciphertext (§10.1). Never queried directly.
+  nidEnc      String  @db.Text
+  /// Deterministic HMAC-SHA256 of the NID. Lets us detect a repeat applicant
+  /// without ever decrypting, and without a plaintext index of national IDs.
+  nidHash     String  @unique @db.Char(64)
+  passportEnc String? @db.Text
+  panEnc      String? @db.Text
+
+  email String @db.VarChar(254)
+  phone String @db.VarChar(20)
+
+  /// ISO 3166-1 alpha-2. Used ONLY for AML/CFT sanctions screening (§10.3) and
+  /// the disabled geopolitical policy rule. Never a model feature — see §10.2
+  /// and the fair-lending guard in the feature manifest codegen.
+  nationality String @default("NP") @db.Char(2)
+
+  /// Retained solely for the §10.2 quarterly disparate-impact test. Excluded
+  /// from the feature vector by construction.
+  dateOfBirth DateTime? @db.Date
+  gender      String?   @db.VarChar(20)
+
+  currentAddress   String?         @db.VarChar(500)
+  permanentAddress String?         @db.VarChar(500)
+  residenceStatus  ResidenceStatus @default(UNDECLARED)
+  yearsAtAddress   Decimal?        @db.Decimal(5, 2)
+
+  /// §3.3.2 KYC pipeline results.
+  kycVerified            Boolean               @default(false)
+  /// `null` when no selfie was submitted — absent evidence, not a failed match.
+  kycFaceMatchScore      Decimal?              @db.Decimal(5, 4)
+  nidVerificationStatus  KycVerificationStatus @default(NOT_ATTEMPTED)
+  amlScreenedAt          DateTime?
+  amlWatchlistHit        Boolean               @default(false)
+  /// §10.3 politically exposed person flag.
+  isPep                Boolean   @default(false)
+
+  applications LoanApplication[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([email])
+  @@index([phone])
+  @@index([nationality])
+  @@map("applicant_profile")
+}
+
+// =============================================================================
+// APPLICATION
+// =============================================================================
+
+model LoanApplication {
+  id String @id @default(uuid()) @db.Uuid
+
+  /// Application Reference Number issued at submission (SOP-001 step 11).
+  arn String @unique @db.VarChar(24)
+
+  applicantId String    @db.Uuid
+  applicant   Applicant @relation(fields: [applicantId], references: [id], onDelete: Cascade)
+
+  productType        ProductType
+  requestedAmountNpr Decimal     @db.Decimal(18, 2)
+  tenureMonths       Int
+
+  status ApplicationStatus @default(DRAFT)
+
+  /// SOP-001 step 5 — explicit, separately recorded consents. Timestamped
+  /// because "when did they consent" is the question an auditor actually asks.
+  consentDataProcessing     Boolean   @default(false)
+  consentCreditBureauPull   Boolean   @default(false)
+  consentAutomatedAssessment Boolean  @default(false)
+  consentedAt               DateTime?
+
+  /// §5.3 inputs sourced from systems outside the documents themselves.
+  activeLoanCount        Int     @default(0)
+  hasActiveBankruptcy    Boolean @default(false)
+  documentFraudFlag      Boolean @default(false)
+
+  submittedAt DateTime?
+  decidedAt   DateTime?
+
+  documents          Document[]
+  resumeProfile      ResumeProfile?
+  bankStatements     BankStatement[]
+  featureStore       FeatureStore?
+  creditScores       CreditScore[]
+  auditEvents        DecisionAudit[]
+  ruleEvaluations    PolicyRuleEvaluation[]
+  underwriterReviews UnderwriterReview[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([applicantId])
+  @@index([status])
+  @@index([createdAt])
+  @@index([status, createdAt])
+  @@map("loan_application")
+}
+
+// =============================================================================
+// DOCUMENTS  (SOP-001 step 2, §10.1 retention)
+// =============================================================================
+
+model Document {
+  id String @id @default(uuid()) @db.Uuid
+
+  applicationId String          @db.Uuid
+  application   LoanApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  type         DocumentType
+  originalName String       @db.VarChar(255)
+  mimeType     String       @db.VarChar(127)
+  sizeBytes    Int
+  /// Content hash — detects the same file re-uploaded across applications.
+  sha256       String       @db.Char(64)
+  storageKey   String       @db.VarChar(500)
+
+  extractionStatus     ExtractionStatus @default(PENDING)
+  /// 0.0000–1.0000. Below the policy floor (default 0.85) the application is
+  /// routed to manual review rather than scored (SOP-002 step 20).
+  extractionConfidence Decimal?         @db.Decimal(5, 4)
+  extractionError      String?          @db.Text
+  /// Raw structured output from the extractor, kept for reprocessing and audit.
+  rawJson              Json?
+  extractedAt          DateTime?
+
+  /// §10.1 — raw documents are deleted 90 days after the decision. The purge
+  /// job filters on this column.
+  purgeAfter DateTime?
+  purgedAt   DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([applicationId])
+  @@index([applicationId, type])
+  @@index([sha256])
+  @@index([purgeAfter])
+  @@map("document")
+}
+
+// =============================================================================
+// RESUME  (§3.1)
+// =============================================================================
+
+model ResumeProfile {
+  id String @id @default(uuid()) @db.Uuid
+
+  applicationId String          @unique @db.Uuid
+  application   LoanApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  /// §3.1 salary information.
+  pastSalaryNpr     Decimal? @db.Decimal(18, 2)
+  expectedSalaryNpr Decimal? @db.Decimal(18, 2)
+  salaryCurrency    String   @default("NPR") @db.Char(3)
+  /// Fitted year-on-year growth across the employment history.
+  salaryGrowthRate  Decimal? @db.Decimal(8, 4)
+
+  totalExperienceYears Decimal @default(0) @db.Decimal(5, 2)
+  jobChangesCount      Int     @default(0)
+  /// OLS slope of seniority rank against time. Positive = progressing.
+  careerProgressionSlope Decimal? @db.Decimal(8, 4)
+
+  highestEducation    EducationLevel @default(NONE)
+  institution         String?        @db.VarChar(300)
+  educationCountry    String?        @db.Char(2)
+  isEducationAbroad   Boolean        @default(false)
+  graduationYear      Int?
+  gpa                 Decimal?       @db.Decimal(4, 2)
+
+  /// §3.1 travel history — ISO alpha-2 codes.
+  countriesTraveled String[] @default([])
+  premiumVisas      String[] @default([])
+
+  extractionConfidence Decimal? @db.Decimal(5, 4)
+  /// Fields the extractor could not find, surfaced to the applicant on referral.
+  missingFields        String[] @default([])
+
+  employmentHistory EmploymentHistory[]
+  references        ProfessionalReference[]
+  certifications    Certification[]
+  awards            Award[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("resume_profile")
+}
+
+/// §7.1 employment_history — career history for the Professional pillar.
+model EmploymentHistory {
+  id String @id @default(uuid()) @db.Uuid
+
+  resumeProfileId String        @db.Uuid
+  resumeProfile   ResumeProfile @relation(fields: [resumeProfileId], references: [id], onDelete: Cascade)
+
+  employerName String       @db.VarChar(300)
+  employerType EmployerType @default(SME)
+  title        String       @db.VarChar(200)
+  /// Normalised seniority 1 (entry) – 10 (C-suite). The regressand for the
+  /// §4.3 career progression index.
+  seniorityRank Int         @default(1)
+
+  startDate DateTime  @db.Date
+  endDate   DateTime? @db.Date
+  isCurrent Boolean   @default(false)
+
+  salaryNpr Decimal? @db.Decimal(18, 2)
+  country   String   @default("NP") @db.Char(2)
+
+  /// §4.3 employer type premium, 0–100, resolved at extraction time.
+  employerScore Decimal @default(55) @db.Decimal(5, 2)
+
+  createdAt DateTime @default(now())
+
+  @@index([resumeProfileId])
+  @@index([resumeProfileId, startDate])
+  @@map("employment_history")
+}
+
+/// §4.4 reference quality — at most two are scored.
+model ProfessionalReference {
+  id String @id @default(uuid()) @db.Uuid
+
+  resumeProfileId String        @db.Uuid
+  resumeProfile   ResumeProfile @relation(fields: [resumeProfileId], references: [id], onDelete: Cascade)
+
+  name         String        @db.VarChar(200)
+  designation  String?       @db.VarChar(200)
+  organisation String?       @db.VarChar(300)
+  tier         ReferenceTier @default(UNKNOWN)
+  relationship String?       @db.VarChar(100)
+  /// Encrypted — a reference's phone/email is third-party personal data.
+  contactEnc   String?       @db.Text
+
+  createdAt DateTime @default(now())
+
+  @@index([resumeProfileId])
+  @@map("professional_reference")
+}
+
+/// §4.3 skills & certifications.
+model Certification {
+  id String @id @default(uuid()) @db.Uuid
+
+  resumeProfileId String        @db.Uuid
+  resumeProfile   ResumeProfile @relation(fields: [resumeProfileId], references: [id], onDelete: Cascade)
+
+  name              String  @db.VarChar(300)
+  issuer            String? @db.VarChar(300)
+  /// §4.3: international certs score 5pts each, local 2pts.
+  isInternational   Boolean @default(false)
+  issuedYear        Int?
+
+  createdAt DateTime @default(now())
+
+  @@index([resumeProfileId])
+  @@map("certification")
+}
+
+/// §4.4 industry awards / recognition.
+model Award {
+  id String @id @default(uuid()) @db.Uuid
+
+  resumeProfileId String        @db.Uuid
+  resumeProfile   ResumeProfile @relation(fields: [resumeProfileId], references: [id], onDelete: Cascade)
+
+  title String @db.VarChar(300)
+  /// INTERNATIONAL = 5pts, NATIONAL = 3pts, COMPANY = 1pt (§4.4).
+  scope String @default("COMPANY") @db.VarChar(20)
+  year  Int?
+
+  createdAt DateTime @default(now())
+
+  @@index([resumeProfileId])
+  @@map("award")
+}
+
+// =============================================================================
+// BANK STATEMENTS  (§3.2, §7.1 bank_accounts / transactions)
+// =============================================================================
+
+/// The upload aggregate: one submitted statement covering one account.
+model BankStatement {
+  id String @id @default(uuid()) @db.Uuid
+
+  applicationId String          @db.Uuid
+  application   LoanApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  bankAccountId String      @unique @db.Uuid
+  bankAccount   BankAccount @relation(fields: [bankAccountId], references: [id], onDelete: Cascade)
+
+  periodFrom     DateTime @db.Date
+  periodTo       DateTime @db.Date
+  /// Distinct calendar months with at least one transaction. Below the policy
+  /// floor (6) the application cannot auto-approve.
+  monthsCovered  Int      @default(0)
+  parsedTxnCount Int      @default(0)
+
+  openingBalanceNpr Decimal? @db.Decimal(18, 2)
+  closingBalanceNpr Decimal? @db.Decimal(18, 2)
+
+  extractionConfidence Decimal? @db.Decimal(5, 4)
+
+  createdAt DateTime @default(now())
+
+  @@index([applicationId])
+  @@map("bank_statement")
+}
+
+/// §7.1 bank_accounts.
+model BankAccount {
+  id String @id @default(uuid()) @db.Uuid
+
+  bankName    String @db.VarChar(200)
+  accountType String @default("SAVINGS") @db.VarChar(50)
+  currency    String @default("NPR") @db.Char(3)
+
+  /// Last four digits only — enough to identify the account to the applicant.
+  accountNumberMasked String @db.VarChar(24)
+  /// Encrypted full number, and an HMAC so the same account can be recognised
+  /// across applications without storing it in the clear.
+  accountNumberEnc    String @db.Text
+  accountNumberHash   String @db.Char(64)
+
+  statementFrom DateTime? @db.Date
+  statementTo   DateTime? @db.Date
+
+  statement         BankStatement?
+  transactions      Transaction[]
+  monthlySummaries  MonthlyFinancialSummary[]
+
+  createdAt DateTime @default(now())
+
+  @@index([accountNumberHash])
+  @@map("bank_account")
+}
+
+/// §7.1 transactions — thousands of rows per applicant.
+model Transaction {
+  id String @id @default(uuid()) @db.Uuid
+
+  accountId String      @db.Uuid
+  account   BankAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  txnDate     DateTime @db.Date
+  description String   @db.VarChar(500)
+  /// Exactly one of debit/credit is non-zero. Kept as two columns rather than a
+  /// signed amount so the aggregate SQL reads the way the statement does.
+  debitNpr    Decimal  @default(0) @db.Decimal(18, 2)
+  creditNpr   Decimal  @default(0) @db.Decimal(18, 2)
+  direction   TxnDirection
+  balanceAfterNpr Decimal? @db.Decimal(18, 2)
+
+  /// §3.2.1 AI classification plus its confidence.
+  aiCategory         TxnCategory @default(OTHER_DEBIT)
+  categoryConfidence Decimal     @default(0.5) @db.Decimal(5, 4)
+
+  counterparty String? @db.VarChar(300)
+  /// Recurrence detection: transactions sharing a group id form one recurring
+  /// series (a salary, an EMI, a premium).
+  isRecurring     Boolean @default(false)
+  recurringGroupId String? @db.VarChar(64)
+
+  createdAt DateTime @default(now())
+
+  @@index([accountId, txnDate])
+  @@index([accountId, aiCategory])
+  @@index([recurringGroupId])
+  @@map("transaction")
+}
+
+/// §7.1 monthly_financial_summary — pre-aggregated so the scorecard never
+/// scans the raw transaction table.
+model MonthlyFinancialSummary {
+  id String @id @default(uuid()) @db.Uuid
+
+  accountId String      @db.Uuid
+  account   BankAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  /// First day of the month, so it sorts and ranges naturally.
+  monthStart DateTime @db.Date
+
+  avgDailyBalanceNpr Decimal @default(0) @db.Decimal(18, 2)
+  closingBalanceNpr  Decimal @default(0) @db.Decimal(18, 2)
+  minBalanceNpr      Decimal @default(0) @db.Decimal(18, 2)
+
+  totalCreditsNpr Decimal @default(0) @db.Decimal(18, 2)
+  totalDebitsNpr  Decimal @default(0) @db.Decimal(18, 2)
+
+  salaryCreditsNpr     Decimal @default(0) @db.Decimal(18, 2)
+  remittanceNpr        Decimal @default(0) @db.Decimal(18, 2)
+  rentalIncomeNpr      Decimal @default(0) @db.Decimal(18, 2)
+  otherIncomeNpr       Decimal @default(0) @db.Decimal(18, 2)
+
+  emiPaymentsNpr       Decimal @default(0) @db.Decimal(18, 2)
+  cardPaymentsNpr      Decimal @default(0) @db.Decimal(18, 2)
+  insurancePremiumNpr  Decimal @default(0) @db.Decimal(18, 2)
+  atmWithdrawalsNpr    Decimal @default(0) @db.Decimal(18, 2)
+  essentialSpendNpr    Decimal @default(0) @db.Decimal(18, 2)
+  discretionarySpendNpr Decimal @default(0) @db.Decimal(18, 2)
+
+  bounceCount      Int @default(0)
+  overdraftDays    Int @default(0)
+  latePaymentCount Int @default(0)
+
+  hasSalaryCredit Boolean @default(false)
+
+  createdAt DateTime @default(now())
+
+  @@unique([accountId, monthStart])
+  @@index([accountId, monthStart])
+  @@map("monthly_financial_summary")
+}
+
+// =============================================================================
+// FEATURE STORE  (§7.1 financial_analytics)
+// =============================================================================
+
+model FeatureStore {
+  id String @id @default(uuid()) @db.Uuid
+
+  applicationId String          @unique @db.Uuid
+  application   LoanApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  /// Manifest version these features were computed against. A score is only
+  /// reproducible if you know which manifest produced its inputs.
+  featureSetVersion String @db.VarChar(20)
+
+  /// The complete canonical vector. JSONB so the manifest can grow without a
+  /// migration per feature.
+  features Json
+
+  // --- Materialised hot columns -------------------------------------------
+  // Duplicated out of the JSONB deliberately: portfolio analytics, the §9.1 KRI
+  // dashboard and the §10.2 disparate-impact query all filter on these, and
+  // JSONB path predicates do not use a btree index the way plain columns do.
+  avgBalance6mNpr        Decimal? @db.Decimal(18, 2)
+  avgMonthlyIncomeNpr    Decimal? @db.Decimal(18, 2)
+  /// Null when income is zero or unverifiable — never Infinity. See safeRatio.
+  debtServiceRatio       Decimal? @db.Decimal(8, 4)
+  savingsRate            Decimal? @db.Decimal(8, 4)
+  salaryConsistencyMonths Int     @default(0)
+  bounceCount6m          Int      @default(0)
+  cashBufferMonths       Decimal? @db.Decimal(8, 2)
+  incomeStreamCount      Int      @default(0)
+  discretionaryRatio     Decimal? @db.Decimal(8, 4)
+
+  /// Conditions that make this assessment less than fully reliable. Non-empty
+  /// blocks auto-approval regardless of score.
+  degradedFlags String[] @default([])
+
+  computedAt DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([featureSetVersion])
+  @@map("financial_analytics")
+}
+
+// =============================================================================
+// SCORING OUTPUT  (§7.1 credit_score_output)
+// =============================================================================
+
+model CreditScore {
+  id String @id @default(uuid()) @db.Uuid
+
+  applicationId String          @db.Uuid
+  application   LoanApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  /// §4.1 pillar scores.
+  financialScore    Decimal @db.Decimal(6, 2)
+  professionalScore Decimal @db.Decimal(6, 2)
+  socialScore       Decimal @db.Decimal(6, 2)
+  behavioralScore   Decimal @db.Decimal(6, 2)
+  compositeScore    Decimal @db.Decimal(6, 2)
+
+  riskBand RiskBand
+  decision Decision
+
+  /// §SOP-002 step 32–34.
+  pdProbability  Decimal @db.Decimal(8, 6)
+  lgdEstimate    Decimal @db.Decimal(5, 4)
+  expectedLossNpr Decimal @db.Decimal(18, 2)
+  provisionRate  Decimal @db.Decimal(5, 4)
+  baselRiskWeight Decimal @db.Decimal(5, 4)
+
+  /// §5 pricing actually offered. Null when nothing was offered.
+  approvedLimitNpr     Decimal? @db.Decimal(18, 2)
+  monthlyInterestRate  Decimal? @db.Decimal(6, 4)
+  processingFeePct     Decimal? @db.Decimal(6, 4)
+  requiresGuarantor    Boolean  @default(false)
+
+  /// §6.3 — full SHAP payload retained for regulatory inspection.
+  shapJson             Json
+  /// Per-pillar sub-score breakdown, so a decision can be re-explained years
+  /// later without re-running the scorecard.
+  pillarBreakdownJson  Json
+  /// Ordered human-readable justification for the decision taken.
+  reasons              String[] @default([])
+
+  /// §5.3 overrides that fired, and degradations that applied.
+  overrideCodes OverrideCode[] @default([])
+  degradedFlags String[]       @default([])
+  degraded      Boolean        @default(false)
+
+  // --- Model lineage (§6.4, §10.4) -----------------------------------------
+  scorecardVersion  String           @db.VarChar(20)
+  featureSetVersion String           @db.VarChar(20)
+  mlModelVersion    String?          @db.VarChar(50)
+  mlProvenance      ModelProvenance?
+  /// Shadow-mode PD. Recorded but not decisive until §6.4 promotion.
+  mlPDefaultShadow  Decimal?         @db.Decimal(8, 6)
+  /// |scorecard-implied PD − ML PD|. Above threshold routes to a human.
+  modelDivergence   Decimal?         @db.Decimal(8, 6)
+
+  latencyMs Int      @default(0)
+  scoredAt  DateTime @default(now())
+
+  @@index([applicationId])
+  @@index([applicationId, scoredAt])
+  @@index([riskBand])
+  @@index([decision])
+  @@index([scoredAt])
+  @@map("credit_score_output")
+}
+
+// =============================================================================
+// AUDIT & GOVERNANCE  (§10.4, §6.4)
+// =============================================================================
+
+/// Append-only decision trail. §10.4 requires input features, model version,
+/// scores, decision, SHAP values, timestamp and operator for every decision;
+/// the EU AI Act (Aug 2026) additionally requires that a decision be
+/// reconstructable after the fact. `inputSnapshot` is what makes that possible.
+model DecisionAudit {
+  id String @id @default(uuid()) @db.Uuid
+
+  applicationId String          @db.Uuid
+  application   LoanApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  eventType String    @db.VarChar(60)
+  actorType ActorType @default(SYSTEM)
+  actorId   String?   @db.VarChar(100)
+
+  /// Complete, self-contained record: the feature vector, policy version,
+  /// model versions and outputs as they were at decision time.
+  inputSnapshot Json
+  outputSnapshot Json?
+
+  createdAt DateTime @default(now())
+
+  @@index([applicationId])
+  @@index([applicationId, createdAt])
+  @@index([eventType])
+  @@index([createdAt])
+  @@map("decision_audit")
+}
+
+/// Every policy rule the engine considered — including ones that were switched
+/// off. A `SKIPPED_DISABLED` row is the evidence that the nationality
+/// adjustment was evaluated and deliberately not applied.
+model PolicyRuleEvaluation {
+  id String @id @default(uuid()) @db.Uuid
+
+  applicationId String          @db.Uuid
+  application   LoanApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  ruleId        String      @db.VarChar(100)
+  ruleVersion   String      @db.VarChar(20)
+  outcome       RuleOutcome
+  pointsApplied Decimal     @default(0) @db.Decimal(6, 2)
+  detail        String      @db.Text
+
+  createdAt DateTime @default(now())
+
+  @@index([applicationId])
+  @@index([ruleId])
+  @@index([outcome])
+  @@map("policy_rule_evaluation")
+}
+
+/// SOP-004 manual underwriter review.
+model UnderwriterReview {
+  id String @id @default(uuid()) @db.Uuid
+
+  applicationId String          @db.Uuid
+  application   LoanApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  reviewerId   String   @db.VarChar(100)
+  reviewerName String   @db.VarChar(200)
+
+  decision Decision
+  /// SOP-004: written justification is mandatory when overriding the model.
+  justification String  @db.Text
+  overrodeModel Boolean @default(false)
+
+  /// SOP-004: approving above the AI recommendation needs a second authoriser.
+  dualAuthById   String?   @db.VarChar(100)
+  dualAuthByName String?   @db.VarChar(200)
+  dualAuthAt     DateTime?
+
+  approvedLimitNpr Decimal? @db.Decimal(18, 2)
+
+  reviewedAt DateTime @default(now())
+
+  @@index([applicationId])
+  @@index([reviewerId])
+  @@map("underwriter_review")
+}
+
+/// §6.4 model registry. A lightweight MLflow stand-in: enough lineage to answer
+/// "which model scored this application, and how did it perform".
+model ModelVersion {
+  id String @id @default(uuid()) @db.Uuid
+
+  name    String @db.VarChar(100)
+  version String @db.VarChar(50)
+  /// e.g. PD_XGBOOST, SCORECARD.
+  kind    String @db.VarChar(50)
+
+  provenance        ModelProvenance @default(SYNTHETIC_SEED)
+  featureSetVersion String          @db.VarChar(20)
+
+  /// §6.4 monitoring metrics: AUC-ROC, Gini, KS, Brier, PSI.
+  metrics Json
+
+  isChampion   Boolean   @default(false)
+  trainedAt    DateTime
+  promotedAt   DateTime?
+  artifactPath String?   @db.VarChar(500)
+  notes        String?   @db.Text
+
+  createdAt DateTime @default(now())
+
+  @@unique([name, version])
+  @@index([kind, isChampion])
+  @@map("model_version")
+}

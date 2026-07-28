@@ -1,0 +1,106 @@
+# ONE BNPL — AICS Model, full local stack.
+#
+#   docker compose up -d --build
+#   docker compose logs -f
+#
+# Start order is enforced by health checks rather than `depends_on` alone: the API needs a
+# database that is actually accepting queries, not merely a container that has started.
+#
+# The ML service is deliberately NOT a hard dependency of the API. The API is designed to keep
+# deciding on the deterministic scorecard when the model is unreachable, so wiring it as a
+# required dependency would misrepresent the architecture and make the stack more fragile than
+# the system it runs.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: aics-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-aics}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-aics_local_dev_password}
+      POSTGRES_DB: ${POSTGRES_DB:-aics}
+      # Deterministic collation, so ORDER BY does not depend on the host locale.
+      POSTGRES_INITDB_ARGS: '--encoding=UTF8 --locale=C'
+    ports:
+      - '${POSTGRES_PORT:-5432}:5432'
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-aics} -d ${POSTGRES_DB:-aics}']
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 10s
+
+  ml:
+    build:
+      context: .
+      dockerfile: apps/ml/Dockerfile
+    container_name: aics-ml
+    restart: unless-stopped
+    ports:
+      - '8000:8000'
+    healthcheck:
+      # /healthz, not /readyz: readiness reports 503 until a model artifact exists, and a fresh
+      # image should come up and say so rather than be restarted in a loop.
+      test: ['CMD', 'python', '-c', "import urllib.request;urllib.request.urlopen('http://127.0.0.1:8000/healthz').read()"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 40s
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    container_name: aics-api
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      API_PORT: 4000
+      DATABASE_URL: postgresql://${POSTGRES_USER:-aics}:${POSTGRES_PASSWORD:-aics_local_dev_password}@postgres:5432/${POSTGRES_DB:-aics}?schema=public
+      # TLS terminates at the compose network boundary here; a real deployment sets sslmode.
+      ALLOW_INSECURE_DB: 'true'
+      ML_SERVICE_URL: http://ml:8000
+      FIELD_ENCRYPTION_KEY: ${FIELD_ENCRYPTION_KEY:?set FIELD_ENCRYPTION_KEY in .env — openssl rand -hex 32}
+      FIELD_HASH_KEY: ${FIELD_HASH_KEY:?set FIELD_HASH_KEY in .env — openssl rand -hex 32}
+      LLAMA_CLOUD_API_KEY: ${LLAMA_CLOUD_API_KEY:-}
+      CORS_ORIGINS: http://localhost:3000
+      STORAGE_ROOT: /data/storage
+    ports:
+      - '4000:4000'
+    volumes:
+      # Uploaded documents. Purged 90 days after decision per §10.1, so this must survive a
+      # container restart — losing it early would breach the retention obligation from the other
+      # direction, by destroying records still inside their retention window.
+      - api-storage:/data/storage
+    healthcheck:
+      test: ['CMD', 'node', '-e', "fetch('http://127.0.0.1:4000/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 20s
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        # Baked at build time: Next inlines NEXT_PUBLIC_* into the client bundle, so this cannot
+        # be supplied at runtime. It is the browser's view of the API, not the container's.
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:4000}
+    container_name: aics-web
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - '3000:3000'
+
+volumes:
+  postgres-data:
+  api-storage:

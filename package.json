@@ -29,5 +29,25 @@
   },
   "devDependencies": {
     "typescript": "^5.6.3"
-  }
+  },
+  "overridesRationale": {
+    "postcss": "Next bundles postcss 8.4.31, which is affected by three advisories (XSS via unescaped </style>, and arbitrary .map file disclosure via attacker-controlled sourceMappingURL). Fixed above 8.5.17. npm's suggested remediation was downgrading Next to v9, so we pin the patched patch-level release instead — postcss 8.5.x is API-compatible with 8.4.x.",
+    "sharp": "Next's image optimiser pulls sharp 0.34.5, which inherits four libvips CVEs (CVE-2026-33327/33328/35590/35591). Fixed in 0.35.0."
+  },
+  "overrides": {
+    "postcss": "^8.5.23",
+    "sharp": "^0.35.3"
+  },
+  "acceptedAuditExceptions": [
+    {
+      "advisory": "GHSA-mh99-v99m-4gvg",
+      "package": "brace-expansion",
+      "affectedRange": "<=5.0.7",
+      "severity": "high",
+      "reachedVia": "eslint -> @eslint/config-array -> minimatch@3; @nestjs/cli -> fork-ts-checker-webpack-plugin -> minimatch@3",
+      "status": "ACCEPTED — no viable fix at this time",
+      "rationale": "The advisory range covers every release except 5.0.8, and 5.x is a breaking change: its CommonJS entry exports { expand } where minimatch@3 does `require('brace-expansion')` and invokes the result directly. Overriding to 5.x breaks eslint at load time. Impact is a denial of service triggered by a maliciously crafted glob pattern, reachable only by whoever already controls our lint/build invocation. Both consumers are devDependencies and are excluded from the production images, which install with --omit=dev.",
+      "revisit": "When eslint and @nestjs/cli ship on a minimatch release that depends on brace-expansion >=5.0.8, drop this entry and upgrade."
+    }
+  ]
 }

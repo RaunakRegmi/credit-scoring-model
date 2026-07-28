@@ -1,0 +1,49 @@
+{
+  "compilerOptions": {
+    "target": "ES2023",
+    "lib": ["ES2023"],
+    "module": "CommonJS",
+    "moduleResolution": "Node",
+    "outDir": "./dist",
+    "baseUrl": "./",
+    "rootDir": "./",
+    "declaration": false,
+    "sourceMap": true,
+    "removeComments": false,
+    "resolveJsonModule": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "forceConsistentCasingInFileNames": true,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "incremental": true,
+    "skipLibCheck": true,
+
+    // §4 of the technical brief: strict typing, no `any`.
+    "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "strictBindCallApply": true,
+    "strictPropertyInitialization": false,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "noPropertyAccessFromIndexSignature": false,
+    "useUnknownInCatchVariables": true,
+
+    // `@aics/contracts` resolves through the npm-workspace symlink to the package's built
+    // `dist/index.d.ts`. Deliberately NOT aliased to the contracts source: pulling another
+    // package's .ts files into this program violates `rootDir` and would compile contracts
+    // twice, once per consumer. Build order is enforced by the root `build` script.
+    "paths": {
+      "@/*": ["src/*"]
+    }
+  },
+  // Prisma 7's `prisma-client` generator emits TypeScript source rather than a compiled
+  // client, so the generated directory must be compiled with the app. Every generated
+  // file carries `@ts-nocheck`, so our strict settings do not fight it.
+  "include": ["src/**/*.ts", "prisma/**/*.ts", "test/**/*.ts"],
+  "exclude": ["node_modules", "dist"]
+}

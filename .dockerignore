@@ -1,0 +1,31 @@
+node_modules
+**/node_modules
+dist
+**/dist
+.next
+**/.next
+coverage
+**/coverage
+
+# Python
+**/.venv
+**/__pycache__
+**/*.pyc
+**/.pytest_cache
+
+# Model artifacts are rebuilt inside the ML image; shipping a host-trained one would make the
+# image's model depend on whoever ran the build.
+apps/ml/artifacts
+
+# Secrets and applicant data must never enter a build context.
+.env
+.env.*
+!.env.example
+storage
+uploads
+
+.git
+.gitignore
+*.log
+.DS_Store
+**/.DS_Store

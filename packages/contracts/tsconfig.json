@@ -2,8 +2,11 @@
   "compilerOptions": {
     "target": "ES2023",
     "lib": ["ES2023"],
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
+    // CommonJS output keeps the package consumable by NestJS (CJS) and Next.js (ESM
+    // via interop) without dual-publishing. Node's ESM loader handles CJS fine; the
+    // reverse is the painful direction.
+    "module": "CommonJS",
+    "moduleResolution": "Node",
     "outDir": "./dist",
     "rootDir": ".",
     "declaration": true,

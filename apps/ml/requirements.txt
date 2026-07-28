@@ -1,0 +1,26 @@
+# ONE BNPL AICS — scoring microservice
+#
+# Pinned rather than floated. A credit model's numeric output must be reproducible: a minor
+# XGBoost or scikit-learn release that changes a default or a tie-break can move a
+# probability of default, and therefore a lending decision, with no code change to point at.
+# Upgrades go through the §6.4 champion/challenger process, not through a fresh pip install.
+
+fastapi==0.140.7
+uvicorn[standard]==0.51.0
+pydantic==2.13.4
+
+xgboost==3.3.0
+scikit-learn==1.9.0
+shap==0.52.0
+
+# numpy is held below 2.5 deliberately. shap depends on numba for its kernel explainers, and
+# numba 0.66 (the first line supporting Python 3.13) caps numpy<2.5. Taking numpy 2.5 forces
+# pip to backtrack onto a numba that has no 3.13 wheel and fails to build from source.
+numpy==2.4.6
+# Transitive via shap, pinned because reproducibility is the point of pinning at all.
+pandas==3.0.5
+numba==0.66.0
+
+# Test only.
+pytest==9.1.1
+httpx==0.28.1
