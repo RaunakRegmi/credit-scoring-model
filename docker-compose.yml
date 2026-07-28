@@ -78,7 +78,10 @@ services:
       BOOTSTRAP_ADMIN_EMAIL: ${BOOTSTRAP_ADMIN_EMAIL:-}
       BOOTSTRAP_ADMIN_PASSWORD: ${BOOTSTRAP_ADMIN_PASSWORD:-}
       LLAMA_CLOUD_API_KEY: ${LLAMA_CLOUD_API_KEY:-}
-      CORS_ORIGINS: http://localhost:3000
+      # Overridable so the stack can be fronted by a tunnel or an ingress without editing this
+      # file. The browser calls the API directly, so the *dashboard's* public origin has to be
+      # listed here or every request is rejected before it reaches a handler.
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
       STORAGE_ROOT: /data/storage
     ports:
       - '4000:4000'

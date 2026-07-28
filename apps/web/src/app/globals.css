@@ -86,6 +86,34 @@
       transition-duration: 0.01ms !important;
     }
   }
+
+  /*
+   * Touch targets.
+   *
+   * Scoped to `pointer: coarse` rather than to a breakpoint, because the thing that makes a 38px
+   * control hard to hit is a fingertip, not a narrow window — a tablet at 900px needs this and a
+   * 380px browser window on a desktop does not. Desktop pointer sizing is left untouched.
+   *
+   * 44px is the floor Apple's HIG and WCAG 2.5.5 both settle on. Applied here rather than as a
+   * utility class on each control so a newly added input inherits it instead of needing to
+   * remember it.
+   */
+  @media (pointer: coarse) {
+    input:not([type='checkbox']):not([type='radio']),
+    select,
+    textarea,
+    button,
+    [role='button'] {
+      min-height: 44px;
+    }
+
+    /* A checkbox cannot simply grow — the box itself is drawn by the platform — so enlarge it. */
+    input[type='checkbox'],
+    input[type='radio'] {
+      width: 20px;
+      height: 20px;
+    }
+  }
 }
 
 @layer utilities {

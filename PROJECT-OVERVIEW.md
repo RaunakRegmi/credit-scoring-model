@@ -32,7 +32,8 @@ That is what this system does.
 1. A product is chosen (BNPL, Personal Loan, Hire Purchase, Auto Loan), with an amount and a tenure.
 2. Basic details are entered, and three separate consents recorded — data processing, credit bureau
    enquiry, and automated assessment.
-3. Two documents are uploaded: a CV, and six months of bank statements.
+3. Two documents are uploaded: a CV, and six months of bank statements. PDF, Word, or a spreadsheet
+   export — see section 10 on what the system can and cannot read.
 4. **Under one second later**, there is a decision: approved with a specific limit and interest
    rate, approved with conditions, referred to a human, or declined — and in every case, the
    specific reasons.
@@ -254,7 +255,7 @@ information, and never hides that something was wrong.
 
 ### Test coverage
 
-**336 automated tests.** Not coverage theatre — they pin down the things that matter:
+**351 automated tests.** Not coverage theatre — they pin down the things that matter:
 
 - Every point in every scoring table, asserted against your document
 - Overrides cannot be outscored — a perfect 1,000 with a sanctions match is still declined
@@ -266,6 +267,7 @@ information, and never hides that something was wrong.
   self-signed one, or one signed by someone without credit authority
 - The powers to create staff and to approve credit never overlap
 - A co-signer's password never reaches the audit record, though their identity always does
+- A CV laid out in columns, or with a banner across the top, scores the same as plain text
 
 On top of that, the access controls and the referral queue were exercised end to end against the
 running system — 99 checks covering sign-in, lockout, session revocation, role separation, and the
@@ -292,6 +294,7 @@ I'd rather you hear this from me than discover it later.
 | **Model drift monitoring** | Needs live production scores to compare against. Buildable the moment you have them. |
 | **Single sign-on against a bank identity provider** | Logins and permissions are now built (section 9). Connecting them to a bank's own directory instead of this system's password store is the next step, and needs the bank's IT to be in the room. |
 | **Automatic chasing of overdue referrals** | The review queue shows how long each application has been waiting and highlights anything past two business days. It does not yet *email* anyone about it — that needs a mail channel this system doesn't have. |
+| **Reading scanned or photographed documents** | A PDF containing real text is read reliably whatever its layout (section 10). A photograph of a printed page contains no text to read, and extracting it needs a paid OCR service. The connection point is built; turning it on is a configuration setting and a contract. Until then, scans are refused clearly and sent to a human rather than half-read. |
 
 ---
 
@@ -354,7 +357,67 @@ and the written reason. One record answers the question an auditor actually asks
 
 ---
 
-## 10. What the launch model actually is
+## 10. What documents it can read
+
+Almost every CV and bank statement that will reach you is a PDF, so this deserves stating plainly.
+
+| What you upload | Works? |
+|---|---|
+| PDF with real text in it — the normal output of Word, Google Docs, or a bank's online statement | **Yes** |
+| Word document (.docx) | **Yes** |
+| Spreadsheet export of a statement (.csv) | **Yes** |
+| Plain text | **Yes** |
+| **PDF that is really a photograph** — a phone snap or a flatbed scan of a printed page | **No, and it says so** |
+
+**A CV's visual design does not affect the score.** This needed proving rather than assuming, so it
+was measured: the same person's CV as plain text, as an ordinary single-column PDF, as a
+two-column CV with a shaded sidebar, and as a CV with a coloured name banner across the top and two
+columns beneath — all four produce **exactly the same score, to the point**. The same holds for a
+bank statement supplied as a spreadsheet or as a PDF table.
+
+That result is not free, and it is worth understanding why, because it was a genuine risk.
+
+A PDF does not store lines of text. It stores individual pieces of text with a position on the page,
+and the order they happen to be listed in is whatever the program that made the file chose. For a
+two-column CV, that order commonly alternates between the columns — so read naively, the sidebar
+gets shuffled into the middle of the work history. The system works out what a line means from the
+heading above it, so shuffling destroys precisely the information it relies on.
+
+There was a second, larger problem affecting *every* PDF, not just two-column ones. A PDF also
+records a hard line break wherever the text happened to wrap at the edge of the page. So a job entry
+that reads as one line in a Word document arrives split in two:
+
+> Senior Manager - Corporate Credit, Nepal Investment Mega Bank Limited | Jan 2021 -
+> **Present**
+
+with the dates broken across the join — and a job whose dates cannot be read is not counted as a
+job at all.
+
+Together these were costing a real applicant up to 44 points out of 1,000 purely because of how
+their CV was laid out. **That is enough to move someone across the Prime boundary at 750** and
+change the rate and limit they are offered — and nothing in the output indicated the document's
+design had anything to do with it. A silent mispricing is the worst kind, because nobody
+investigates it.
+
+The system now reconstructs the page from the position of the text rather than trusting the order,
+and rejoins lines that the page edge broke. What it will *not* do is guess: where two readings of a
+document are both plausible, it tries both and keeps the one that yields a coherent CV, rather than
+committing to a rule that would be wrong on some layouts.
+
+**On scans.** If someone photographs their CV, there is no text in the file to read — only pixels.
+Reading those needs OCR, which is a paid third-party service; the connection point exists and is a
+configuration setting away. Until then a scan is refused clearly, flagged three ways, and sent to a
+human. It is never scored on whatever fragments could be salvaged, which is the failure that would
+actually matter.
+
+**What to do about it:** ask applicants for the PDF their bank or their word processor produced,
+not a photograph of a printout. If a material share of your applicants can only supply scans, the
+OCR service is worth contracting — but that is a volume question you can answer after the pilot,
+not before.
+
+---
+
+## 11. What the launch model actually is
 
 The AI model shipped today is trained on a **synthetically generated population** calibrated to
 your own documented risk bands. It is tagged as such everywhere — in the database, in the API, and
@@ -371,7 +434,7 @@ it.
 
 ---
 
-## 11. How it's put together
+## 12. How it's put together
 
 Four components, each doing one job.
 
@@ -411,7 +474,7 @@ carries a version stamp, so a mismatched model refuses to score rather than scor
 
 ---
 
-## 12. Where things are
+## 13. Where things are
 
 ```
 PROJECT-OVERVIEW.md          You are here
@@ -445,7 +508,7 @@ that ships to production.
 
 ---
 
-## 13. Running it
+## 14. Running it
 
 ```bash
 docker compose up -d
@@ -463,7 +526,7 @@ Then test it with any matching pair from `samples/`. Full detail, including the 
 
 ---
 
-## 14. My recommendation on next steps
+## 15. My recommendation on next steps
 
 | Priority | Action | Why |
 |---|---|---|

@@ -125,6 +125,33 @@ docs/                       Data dictionary, scoring methodology, 2026 model lan
                             bank deployment readiness
 ```
 
+### Document formats
+
+| Format | Resume / CV | Bank statement |
+|---|---|---|
+| **PDF** (text layer) | Yes — single-column, two-column sidebar, and banner-plus-columns layouts all score identically to plain text | Yes — tabular PDF |
+| **DOCX** | Yes | Yes |
+| **CSV / TSV** | — | Yes, header-row driven |
+| **TXT** | Yes | Yes |
+| **PDF** (image-only scan) | Needs OCR: set `LLAMA_CLOUD_API_KEY` to route through LlamaParse. Without it, extraction fails loudly — three degradation flags and a referral, never a score derived from nothing | same |
+
+PDF is the format that requires real work, because a PDF has no lines — only positioned glyph runs.
+Two things follow from that, and both changed a score before they were fixed:
+
+- **Columns.** Content-stream order in a two-column CV interleaves the sidebar into the work
+  history, and the resume parser reads a line's meaning from the heading above it. Cost: 28
+  composite points on the fixture CV, 25 of them Professional.
+- **Wrapping.** A PDF stores a hard break wherever the text wrapped, so a work-history entry whose
+  date range breaks across the wrap stops being recognisable as a role. Cost: a further 16 points,
+  and this one affects *every* PDF, not only multi-column ones.
+
+`apps/api/src/extraction/pdf-layout.ts` rebuilds the reading order from glyph geometry: runs are
+assigned to vertical bands, each band's lines are grouped independently, and lines the measure
+wrapped are rejoined. Because no geometric test can distinguish two-column prose from a two-column
+`Label: value` table, the reflow is offered as a *candidate* rather than imposed — the resume path
+parses both readings and keeps whichever recovers more structure, which turns an unanswerable
+question into a measured one.
+
 ### The feature manifest is the spine
 
 Features are computed in TypeScript and consumed in Python — two languages, two chances to disagree
@@ -140,7 +167,7 @@ column order at predict time. The version travels on every request and a mismatc
 ## Verification
 
 ```bash
-npm test                                  # 290 tests — contracts + API
+npm test                                  # 305 tests — contracts + API
 cd apps/ml && .venv/bin/python -m pytest  # 46 tests — manifest, model, API
 ```
 
@@ -164,6 +191,9 @@ What the suites actually pin down:
 - **Separation of duties** — administration and credit authority are disjoint, asserted against the
   authority tables themselves.
 - **No credential in an audit record** — the co-signer's identity is stored, their password is not.
+- **Document layout does not change a score** — a CV as plain text, as a single-column PDF, as a
+  two-column PDF and as a banner-plus-columns PDF all score identically, and so does a bank
+  statement as CSV or as a tabular PDF.
 
 ### End-to-end, verified
 

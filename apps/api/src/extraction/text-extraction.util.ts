@@ -9,6 +9,7 @@ import mammoth from 'mammoth';
 import { extractText, getDocumentProxy } from 'unpdf';
 
 import { EmptyExtractionError, type RawDocument } from './document-extractor.port';
+import { reconstructPage, type PdfPageLike } from './pdf-layout';
 
 export type DetectedFormat = 'PDF' | 'DOCX' | 'CSV' | 'TEXT' | 'UNKNOWN';
 
@@ -60,6 +61,23 @@ export function detectFormat(document: RawDocument): DetectedFormat {
  * a second look at the regexes, and the caller routes it to manual review on that basis.
  */
 export async function extractPlainText(document: RawDocument): Promise<string> {
+  const [primary] = await extractTextCandidates(document);
+  return primary;
+}
+
+/**
+ * Every plausible reading of the document, best-guess first.
+ *
+ * A PDF can yield two: the content-stream order, and — when the page geometry shows columns — the
+ * column-ordered reflow. Which one is *correct* cannot be settled geometrically (see
+ * `pdf-layout.ts`), so both are returned and the caller picks using its own parser as the judge.
+ * Callers that do not care can use `extractPlainText` and get the first.
+ *
+ * Non-PDF formats have exactly one reading.
+ */
+export async function extractTextCandidates(
+  document: RawDocument,
+): Promise<[string, ...string[]]> {
   if (document.buffer.length === 0) {
     throw new EmptyExtractionError(document.originalName, 'file is empty');
   }
@@ -68,15 +86,15 @@ export async function extractPlainText(document: RawDocument): Promise<string> {
 
   switch (format) {
     case 'PDF': {
-      const text = await extractPdfText(document);
-      if (text.trim().length < 20) {
+      const { reading, geometric } = await extractPdfReadings(document);
+      if (reading.trim().length < 20 && (geometric ?? '').trim().length < 20) {
         throw new EmptyExtractionError(
           document.originalName,
           'the PDF contains no extractable text layer — it is most likely a scan and needs OCR ' +
             '(set LLAMA_CLOUD_API_KEY to route it through LlamaParse)',
         );
       }
-      return text;
+      return geometric === null ? [reading] : [reading, geometric];
     }
 
     case 'DOCX': {
@@ -84,7 +102,7 @@ export async function extractPlainText(document: RawDocument): Promise<string> {
       if (result.value.trim().length < 20) {
         throw new EmptyExtractionError(document.originalName, 'the document contains no text');
       }
-      return result.value;
+      return [result.value];
     }
 
     case 'CSV':
@@ -93,7 +111,7 @@ export async function extractPlainText(document: RawDocument): Promise<string> {
       if (text.trim().length === 0) {
         throw new EmptyExtractionError(document.originalName, 'the file contains no text');
       }
-      return text;
+      return [text];
     }
 
     case 'UNKNOWN':
@@ -106,7 +124,26 @@ export async function extractPlainText(document: RawDocument): Promise<string> {
   }
 }
 
-async function extractPdfText(document: RawDocument): Promise<string> {
+interface PdfReadings {
+  /** Content-stream order, straight from the library. The historical behaviour. */
+  readonly reading: string;
+  /**
+   * Column-ordered reflow, or `null` when no page showed columns worth reordering. Pages without
+   * columns contribute their library text unchanged, so this is a whole-document alternative
+   * rather than a partial one.
+   */
+  readonly geometric: string | null;
+}
+
+/**
+ * PDF -> text, twice: once as the library reads it, once with columns reflowed.
+ *
+ * Reflow is attempted per page rather than per document, so a CV whose first page is a two-column
+ * summary and whose second is plain prose has each page handled on its own terms. If no page offers
+ * a column reordering, `columnOrdered` is `null` and there is exactly one reading — which is the
+ * common case, and it takes the identical path it took before column handling existed.
+ */
+async function extractPdfReadings(document: RawDocument): Promise<PdfReadings> {
   try {
     // A fresh Uint8Array: pdf.js takes ownership of the buffer it is handed and will
     // detach it, which corrupts the caller's Buffer if we pass a view over the same memory.
@@ -114,8 +151,35 @@ async function extractPdfText(document: RawDocument): Promise<string> {
     bytes.set(document.buffer);
 
     const pdf = await getDocumentProxy(bytes);
-    const { text } = await extractText(pdf, { mergePages: true });
-    return Array.isArray(text) ? text.join('\n') : text;
+
+    const { text } = await extractText(pdf, { mergePages: false });
+    const libraryPages = Array.isArray(text) ? text : [String(text)];
+
+    const reconstructedPages: string[] = [];
+    let anyReconstructed = false;
+
+    for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
+      const fallback = libraryPages[pageNumber - 1] ?? '';
+      let reconstructed: string | null = null;
+      try {
+        const page = (await pdf.getPage(pageNumber)) as unknown as PdfPageLike;
+        reconstructed = await reconstructPage(page);
+      } catch {
+        // Reflow is an accuracy improvement, not a correctness requirement. A page whose glyph
+        // positions cannot be read still has the library's text, and losing that to an exception
+        // raised while trying to improve it would be a strictly worse outcome.
+        reconstructed = null;
+      }
+      if (reconstructed !== null) {
+        anyReconstructed = true;
+      }
+      reconstructedPages.push(reconstructed ?? fallback);
+    }
+
+    return {
+      reading: libraryPages.join('\n'),
+      geometric: anyReconstructed ? reconstructedPages.join('\n') : null,
+    };
   } catch (error) {
     if (error instanceof EmptyExtractionError) {
       throw error;

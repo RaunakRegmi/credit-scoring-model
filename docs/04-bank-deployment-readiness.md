@@ -1,7 +1,7 @@
 # From Pilot to Bank-Deployed — Readiness Checklist
 
 **Prepared for:** Fintara Solutions Pvt Ltd — Board & Senior Management
-**Purpose:** `PROJECT-OVERVIEW.md` §14 lists what blocks a *pilot*. This document is the next step:
+**Purpose:** `PROJECT-OVERVIEW.md` §15 lists what blocks a *pilot*. This document is the next step:
 what changes when the applicant is a bank's real customer and real money moves — access control,
 security posture, regulation, and availability.
 
@@ -169,7 +169,7 @@ beyond the named volume. That's appropriate for a pilot; a bank-facing productio
 - At least two replicas of the API and web services behind a load balancer, so a single node
   restart doesn't take the assessment engine down mid-application.
 - A documented RTO/RPO the bank's operations team has actually signed off on — "the database and
-  trained model persist between restarts" (`PROJECT-OVERVIEW.md` §13) is a fine property for a
+  trained model persist between restarts" (`PROJECT-OVERVIEW.md` §14) is a fine property for a
   demo and not a disaster recovery plan.
 - The existing chaos-tested behavior — the ML service can go down and the scorecard still decides,
   degrading to `REFER_UNDERWRITER` rather than failing closed or open — is the right pattern and
@@ -205,7 +205,7 @@ codebase, but it's the last mile between "the system says approve" and "the appl
 Items 1 and 2 were the two engineering blockers. What remains is either someone else's decision
 (3), an environment choice (4, 5, 6), or a vendor conversation (8).
 
-This still sits downstream of `PROJECT-OVERVIEW.md` §14 — **outcome capture and the nationality
+This still sits downstream of `PROJECT-OVERVIEW.md` §15 — **outcome capture and the nationality
 clause withdrawal remain the two highest-value items overall**, and neither is affected by the work
 above. This document is what else is true by the time a real bank customer, not a pilot cohort, is
 on the other end of a decision.

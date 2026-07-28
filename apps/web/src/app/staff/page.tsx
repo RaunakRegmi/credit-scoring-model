@@ -68,8 +68,27 @@ export default function StaffPage(): React.ReactElement {
         />
       )}
 
+      {/*
+        Phone presentation: one card per account. A seven-column table is not readable at 390px, and
+        without `min-w-0` the table's `min-w` would push the whole page wider than the viewport —
+        a flex item defaults to `min-width: auto`, so the scroll container never engages.
+      */}
       {staffList.data !== undefined && (
-        <div className="card overflow-x-auto">
+        <ul className="flex list-none flex-col gap-3 sm:hidden">
+          {staffList.data.map((account) => (
+            <StaffCard
+              key={account.id}
+              account={account}
+              isSelf={account.id === currentUser?.id}
+              mayManage={mayManage}
+              onChanged={invalidate}
+            />
+          ))}
+        </ul>
+      )}
+
+      {staffList.data !== undefined && (
+        <div className="card hidden min-w-0 overflow-x-auto sm:block">
           <table className="w-full min-w-[48rem] text-sm">
             <thead>
               <tr className="border-b border-[var(--color-line)] text-left text-xs tracking-wide text-[var(--color-ink-subtle)] uppercase">
@@ -209,6 +228,148 @@ function CreateStaffPanel({ onCreated }: { readonly onCreated: () => void }): Re
 }
 
 /* -------------------------------------------------------------------------- */
+
+/** Phone presentation of one staff account. Same actions as the table row, stacked. */
+function StaffCard({
+  account,
+  isSelf,
+  mayManage,
+  onChanged,
+}: {
+  readonly account: StaffSummary;
+  readonly isSelf: boolean;
+  readonly mayManage: boolean;
+  readonly onChanged: () => void;
+}): React.ReactElement {
+  const [resetting, setResetting] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+
+  const setActive = useMutation({
+    mutationFn: (isActive: boolean) => updateStaff(account.id, { isActive }),
+    onSuccess: onChanged,
+  });
+  const setRole = useMutation({
+    mutationFn: (role: StaffRole) => updateStaff(account.id, { role }),
+    onSuccess: onChanged,
+  });
+  const reset = useMutation({
+    mutationFn: () => resetStaffPassword(account.id, { temporaryPassword: newPassword }),
+    onSuccess: () => {
+      setNewPassword('');
+      setResetting(false);
+      onChanged();
+    },
+  });
+
+  const busy = setActive.isPending || setRole.isPending || reset.isPending;
+  const error = setActive.error ?? setRole.error ?? reset.error;
+
+  return (
+    <li className="card flex min-w-0 flex-col gap-3 px-4 py-3.5">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="truncate font-medium text-[var(--color-ink)]">
+            {account.fullName}
+            {isSelf && (
+              <span className="ml-1.5 text-xs font-normal text-[var(--color-ink-subtle)]">
+                (you)
+              </span>
+            )}
+          </p>
+          <p className="numeric truncate text-xs text-[var(--color-ink-muted)]">{account.email}</p>
+        </div>
+        {mayManage && !isSelf && (
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => setActive.mutate(!account.isActive)}
+            aria-label={`${account.isActive ? 'Deactivate' : 'Reactivate'} ${account.fullName}`}
+            className="shrink-0 rounded-lg border border-[var(--color-line-strong)] p-2.5 text-[var(--color-ink-muted)] disabled:opacity-50"
+          >
+            {account.isActive ? <UserX size={16} aria-hidden /> : <ShieldCheck size={16} aria-hidden />}
+          </button>
+        )}
+      </div>
+
+      <StatusBadges account={account} />
+
+      <dl className="flex flex-wrap gap-x-5 gap-y-1 text-xs">
+        <div className="flex gap-1.5">
+          <dt className="text-[var(--color-ink-subtle)]">Last sign-in</dt>
+          <dd className="numeric text-[var(--color-ink-muted)]">
+            {account.lastLoginAt === null ? 'never' : formatDateTime(account.lastLoginAt)}
+          </dd>
+        </div>
+      </dl>
+
+      {mayManage && !isSelf ? (
+        <label className="flex flex-col gap-1.5">
+          <span className="text-xs font-medium text-[var(--color-ink-muted)]">Role</span>
+          <select
+            value={account.role}
+            disabled={busy}
+            onChange={(event) => setRole.mutate(event.target.value as StaffRole)}
+            className="min-h-11 rounded-lg border border-[var(--color-line-strong)] bg-[var(--color-surface)] px-3 text-sm text-[var(--color-ink)] disabled:opacity-50"
+          >
+            {STAFF_ROLES.map((option) => (
+              <option key={option} value={option}>
+                {humanise(option)}
+              </option>
+            ))}
+          </select>
+        </label>
+      ) : (
+        <p className="text-xs text-[var(--color-ink-muted)]">Role: {humanise(account.role)}</p>
+      )}
+
+      {error != null && (
+        <p className="flex items-center gap-1.5 text-xs text-[var(--color-negative)]">
+          <AlertCircle size={13} aria-hidden />
+          {error instanceof ApiError ? error.message : 'The change could not be applied.'}
+        </p>
+      )}
+
+      {mayManage && (
+        <>
+          <button
+            type="button"
+            onClick={() => setResetting(!resetting)}
+            className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-lg border border-[var(--color-line-strong)] px-3 text-sm font-medium text-[var(--color-ink-muted)]"
+          >
+            <KeyRound size={14} aria-hidden />
+            Reset password
+          </button>
+
+          {resetting && (
+            <form
+              onSubmit={(event) => {
+                event.preventDefault();
+                reset.mutate();
+              }}
+              className="flex flex-col gap-2"
+            >
+              <input
+                type="password"
+                value={newPassword}
+                onChange={(event) => setNewPassword(event.target.value)}
+                autoComplete="new-password"
+                placeholder="New temporary password (12+)"
+                className="min-h-11 rounded-lg border border-[var(--color-line-strong)] bg-[var(--color-surface)] px-3 text-sm"
+              />
+              <button
+                type="submit"
+                disabled={newPassword.length < 12 || reset.isPending}
+                className="min-h-11 rounded-lg bg-[var(--color-brand)] px-3 text-sm font-semibold text-white disabled:opacity-50"
+              >
+                Reset and end all sessions
+              </button>
+            </form>
+          )}
+        </>
+      )}
+    </li>
+  );
+}
 
 function StaffRow({
   account,
