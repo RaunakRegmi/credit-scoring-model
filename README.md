@@ -77,6 +77,27 @@ co-signer's password ships in the repository.
 Dashboard on <http://localhost:3000>, API on <http://localhost:4000>, model on
 <http://localhost:8000>.
 
+### Sharing a demo link
+
+```bash
+brew install cloudflared      # once
+./scripts/demo-tunnel.sh
+```
+
+Prints a public HTTPS URL for the dashboard. Ctrl-C closes it and restores the stack to localhost.
+
+Two tunnels are opened, not one, because the dashboard calls the API from the browser — so the API
+needs its own public origin. That creates a circular dependency the script exists to resolve: the
+web bundle needs the API's public URL (Next inlines `NEXT_PUBLIC_API_URL` at **build** time and it
+cannot be supplied at runtime), while the API needs the dashboard's public URL in `CORS_ORIGINS`.
+Neither exists until its tunnel is up, so both tunnels start first and both containers are then
+rebuilt against the harvested URLs. The script verifies the CORS preflight through the public origin
+before printing the link, because that is the failure that otherwise shows up as a dashboard that
+loads and cannot sign in.
+
+The URL lives only as long as the script runs. **Synthetic data only** — this deployment has no WAF
+and no ingress you control; see [`docs/04-bank-deployment-readiness.md`](docs/04-bank-deployment-readiness.md) §2.
+
 ### Local development
 
 Requires Node 22+, Python 3.12/3.13, PostgreSQL 16.
@@ -270,6 +291,8 @@ Then, for detail:
 - [`docs/04-bank-deployment-readiness.md`](docs/04-bank-deployment-readiness.md) — what changes
   between a pilot and a real bank deployment: the underwriter review queue, security hardening,
   NRB compliance posture, HA/DR
+- [`docs/05-running-and-credentials.md`](docs/05-running-and-credentials.md) — how to start the
+  stack, the local demo logins and what each role can do, and a scene-by-scene demo script
 
 ---
 

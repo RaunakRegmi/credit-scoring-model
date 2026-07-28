@@ -575,3 +575,72 @@ Bachelor of Business Administration, University of Melbourne, Australia, 2019
     }
   });
 });
+
+/* ========================================================================== */
+/* Letter-spaced headings                                                     */
+/* ========================================================================== */
+
+describe('letter-spaced section headings', () => {
+  /**
+   * `letter-spacing` on a section heading is a near-universal choice in designed CVs. It positions
+   * every glyph independently in the PDF, so the text layer yields `W O R K  E X P E R I E N C E` —
+   * and the word boundary is rendered as the same single space as the letter boundaries, so it is
+   * not recoverable from the text.
+   *
+   * The failure this guards against was total rather than partial: no heading matched, so no
+   * section existed, so nothing downstream of the header block parsed at all. Measured on the demo
+   * CV before the fix: 0 employment entries, confidence 0.38.
+   */
+  const spaced = [
+    'Anjali Sharma',
+    'anjali.sharma@example.com.np | 9801234567',
+    'P E R S O N A L  D E TA I L S',
+    'Current Salary: NPR 285,000',
+    'W O R K  E X P E R I E N C E',
+    'Senior Manager - Corporate Credit, Nepal Investment Mega Bank Limited | Jan 2021 - Present',
+    'Leading the corporate credit portfolio. Salary: NPR 285,000 per month.',
+    'E D U C AT I O N',
+    'Master of Business Administration (Finance), University of Melbourne, Australia, 2011',
+    'C E R T I F I C AT I O N S',
+    '- CFA Level II, CFA Institute, 2016',
+  ].join('\n');
+
+  it('recovers the sections, and therefore the content under them', () => {
+    const result = parseResume(spaced);
+
+    expect(result.employment).toHaveLength(1);
+    expect(result.employment[0]?.employerName).toContain('Nepal Investment Mega Bank');
+    expect(result.education.level).toBe('MASTERS');
+    expect(result.certifications).toHaveLength(1);
+    // Read out of PERSONAL DETAILS, which only exists if that heading was recognised.
+    expect(result.pastSalaryNpr).toBe(285_000);
+  });
+
+  it('parses letter-spaced and ordinary headings to the same result', () => {
+    const ordinary = spaced
+      .replace('P E R S O N A L  D E TA I L S', 'PERSONAL DETAILS')
+      .replace('W O R K  E X P E R I E N C E', 'WORK EXPERIENCE')
+      .replace('E D U C AT I O N', 'EDUCATION')
+      .replace('C E R T I F I C AT I O N S', 'CERTIFICATIONS');
+
+    expect(parseResume(spaced)).toEqual(parseResume(ordinary));
+  });
+
+  it('does not mistake ordinary short-word text for a letter-spaced heading', () => {
+    // Four-plus tokens of one or two characters is the trigger, so these are the shapes that could
+    // be misread. None of them should open a section and swallow what follows.
+    for (const line of [
+      'I am a UX designer',
+      'A B C D Corporation Pvt Ltd',
+      'Rs 45 00 000 in total',
+      'Ph D in Economics',
+    ]) {
+      const parsed = parseResume(
+        ['Test Applicant', line, 'Some following body text that must not be captured.'].join('\n'),
+      );
+      // With no heading recognised, everything stays in the header block and no section exists.
+      expect(parsed.employment, line).toHaveLength(0);
+      expect(parsed.certifications, line).toHaveLength(0);
+    }
+  });
+});

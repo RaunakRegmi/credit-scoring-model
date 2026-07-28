@@ -26,6 +26,8 @@ apps/ml/artifacts/*.pkl
 # Uploaded applicant documents — never commit (PII, §10.1)
 storage/
 uploads/
+# Output of scripts/export-data.sh — raw CVs, bank statements and applicant PII
+export/
 
 .DS_Store
 *.log

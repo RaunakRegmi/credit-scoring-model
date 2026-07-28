@@ -96,16 +96,80 @@ function splitSections(lines: readonly string[]): Sections {
  * Requires the line to be short as well as matching, because "Experience designing
  * payment systems for commercial banks" starts with the word Experience but is prose.
  */
-function detectHeading(line: string): SectionName | null {
-  const stripped = line.replace(/[:\s_\-–—=|]+$/g, '').trim();
-  if (stripped.length === 0 || stripped.length > 60 || stripped.split(/\s+/).length > 6) {
+/**
+ * The same headings with their spaces removed, for letter-spaced type.
+ *
+ * `letter-spacing` on a section heading — a near-universal choice in designed CVs — positions every
+ * glyph independently in the PDF, so the text layer yields `W O R K  E X P E R I E N C E`. The word
+ * boundary is rendered as the same single space as the letter boundaries, so it is *not* recoverable
+ * from the text; matching has to happen on the space-stripped form instead.
+ *
+ * Kept as an explicit table rather than derived from `SECTION_PATTERNS` by rewriting its regex
+ * sources: string surgery on patterns is unreadable, and a heading list is exactly the thing a
+ * future reader will want to extend by hand.
+ */
+const SECTION_COMPACT_PATTERNS: Readonly<Record<string, RegExp>> = {
+  PERSONAL: /^(personal(details|information|profile)|biodata|profile)$/,
+  SUMMARY: /^(summary|objective|careerobjective|professionalsummary|about)$/,
+  EXPERIENCE:
+    /^(workexperience|professionalexperience|employment(history)?|experience|careerhistory|workhistory)$/,
+  EDUCATION: /^(education(al)?(qualification|background|details)?|academic(background)?)$/,
+  CERTIFICATIONS:
+    /^(certifications?|trainings?|courses?|professionaldevelopment|skills?(&|and)certifications?|licen[cs]es?)$/,
+  TRAVEL:
+    /^(travel(history)?|countries(visited|travelled|traveled)|internationalexposure|visas?)$/,
+  REFERENCES: /^(references?|referees?)$/,
+  AWARDS: /^(awards?|achievements?|honours?|honors?|recognitions?|publications?)$/,
+  SKILLS: /^(skills?|technicalskills?|competenc(y|ies))$/,
+  LANGUAGES: /^(languages?)$/,
+};
+
+/**
+ * Collapses a letter-spaced line to a single lowercase word, or `null` if it is ordinary text.
+ *
+ * The test is that most tokens are one or two characters. Two rather than one because a PDF
+ * generator emits runs at font-change and kerning-pair boundaries, so a letter-spaced word arrives
+ * as a mix of singles and occasional pairs — `C O N TA C T`. Four tokens minimum, so an initialled
+ * name or a short phrase is never mistaken for a heading.
+ */
+function despaceHeading(line: string): string | null {
+  const tokens = line.trim().split(/\s+/);
+  if (tokens.length < 4) {
     return null;
   }
-  for (const [name, pattern] of Object.entries(SECTION_PATTERNS)) {
-    if (pattern.test(stripped)) {
-      return name as SectionName;
+  const short = tokens.filter((token) => token.length <= 2).length;
+  if (short / tokens.length < 0.7) {
+    return null;
+  }
+  return tokens.join('').toLowerCase();
+}
+
+function detectHeading(line: string): SectionName | null {
+  const stripped = line.replace(/[:\s_\-–—=|]+$/g, '').trim();
+  if (stripped.length === 0 || stripped.length > 60) {
+    return null;
+  }
+
+  // A heading is a handful of words. The token ceiling is what excludes a sentence — but it also
+  // excludes a letter-spaced heading, which is why that case is handled separately below rather
+  // than by relaxing the ceiling for everything.
+  if (stripped.split(/\s+/).length <= 6) {
+    for (const [name, pattern] of Object.entries(SECTION_PATTERNS)) {
+      if (pattern.test(stripped)) {
+        return name as SectionName;
+      }
     }
   }
+
+  const compact = despaceHeading(stripped);
+  if (compact !== null) {
+    for (const [name, pattern] of Object.entries(SECTION_COMPACT_PATTERNS)) {
+      if (pattern.test(compact)) {
+        return name as SectionName;
+      }
+    }
+  }
+
   return null;
 }
 

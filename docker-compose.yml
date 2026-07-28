@@ -86,10 +86,17 @@ services:
     ports:
       - '4000:4000'
     volumes:
-      # Uploaded documents. Purged 90 days after decision per §10.1, so this must survive a
-      # container restart — losing it early would breach the retention obligation from the other
-      # direction, by destroying records still inside their retention window.
-      - api-storage:/data/storage
+      # Uploaded documents, bind-mounted to ./storage on the host rather than a named volume.
+      #
+      # Purged 90 days after decision per §10.1, so this must survive a container restart — losing
+      # it early would breach the retention obligation from the other direction, by destroying
+      # records still inside their retention window. A bind mount survives `docker compose down -v`
+      # as well, which a named volume does not: the files are the only copy, and the command that
+      # resets the database should not also destroy them.
+      #
+      # The trade-off is that these files now sit in the working tree. `storage/` is gitignored, and
+      # must stay that way — the blobs are raw applicant CVs and bank statements.
+      - ./storage:/data/storage
     healthcheck:
       test: ['CMD', 'node', '-e', "fetch('http://127.0.0.1:4000/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
       interval: 10s
@@ -115,4 +122,7 @@ services:
 
 volumes:
   postgres-data:
-  api-storage:
+  # `api-storage` was removed when document storage moved to the ./storage bind mount above.
+  # If you ran an earlier revision of this file, the old volume is still on disk holding the
+  # documents from that era. Reclaim it once you are satisfied nothing is missing:
+  #   docker volume rm creditscoringmodel_api-storage

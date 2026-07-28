@@ -57,7 +57,15 @@ export class LocalDocumentExtractor implements DocumentExtractor {
 
     for (let index = 1; index < candidates.length; index += 1) {
       const candidate = parseResume(candidates[index] ?? '');
-      if (parseQuality(candidate) > parseQuality(best)) {
+      // `>=`, so a tie goes to the *later* candidate — the geometric reconstruction. Ties are
+      // common, because the quality metric only sees whether a field was recovered at all, and two
+      // readings of the same CV usually recover the same set. The tiebreak matters anyway: on a
+      // two-column CV the content-stream reading can drop lines into the wrong section and inflate
+      // a sub-score (measured: two spurious certifications, +14 points) while still finding the
+      // same employment. Between two readings the metric cannot separate, the one built from the
+      // page's actual geometry is the better bet than the one built from the generator's emission
+      // order.
+      if (parseQuality(candidate) >= parseQuality(best)) {
         best = candidate;
         bestIndex = index;
       }
