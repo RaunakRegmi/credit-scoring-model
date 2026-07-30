@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { AlertCircle, KeyRound, Loader2 } from 'lucide-react';
+import { AlertCircle, Eye, EyeOff, KeyRound, Loader2 } from 'lucide-react';
 
 import { useAuth } from '@/components/auth-provider';
 import { ApiError } from '@/lib/api';
@@ -146,23 +146,35 @@ function Field({
   readonly autoFocus?: boolean;
   readonly hint?: string;
 }): React.ReactElement {
+  const [show, setShow] = useState(false);
+
   return (
-    <label className="flex flex-col gap-1.5">
+    <div className="flex flex-col gap-1.5">
       <span className="text-xs font-medium tracking-wide text-[var(--color-ink-muted)] uppercase">
         {label}
       </span>
-      <input
-        type="password"
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        required
-        autoComplete={autoComplete}
-        autoFocus={autoFocus}
-        className="rounded-lg border border-[var(--color-line-strong)] bg-[var(--color-surface)] px-3 py-2 text-sm text-[var(--color-ink)] outline-none focus:border-[var(--color-brand)] focus:ring-2 focus:ring-[var(--color-brand)]/20"
-      />
+      <div className="relative">
+        <input
+          type={show ? 'text' : 'password'}
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          required
+          autoComplete={autoComplete}
+          autoFocus={autoFocus}
+          className="w-full rounded-lg border border-[var(--color-line-strong)] bg-[var(--color-surface)] px-3 py-2 pr-9 text-sm text-[var(--color-ink)] outline-none focus:border-[var(--color-brand)] focus:ring-2 focus:ring-[var(--color-brand)]/20"
+        />
+        <button
+          type="button"
+          onClick={() => setShow((v) => !v)}
+          className="absolute inset-y-0 right-0 flex items-center px-2.5 text-[var(--color-ink-muted)] hover:text-[var(--color-ink)]"
+          aria-label={show ? 'Hide password' : 'Show password'}
+        >
+          {show ? <EyeOff size={15} aria-hidden /> : <Eye size={15} aria-hidden />}
+        </button>
+      </div>
       {hint !== undefined && (
         <span className="text-xs text-[var(--color-caution)]">{hint}</span>
       )}
-    </label>
+    </div>
   );
 }
