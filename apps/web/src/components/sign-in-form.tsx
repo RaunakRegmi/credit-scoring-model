@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { AlertCircle, Loader2, LogIn, ShieldCheck } from 'lucide-react';
+import { AlertCircle, Eye, EyeOff, Loader2, LogIn, ShieldCheck } from 'lucide-react';
 
 import { useAuth } from '@/components/auth-provider';
 import { ApiError } from '@/lib/api';
@@ -20,6 +20,7 @@ export function SignInForm(): React.ReactElement {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   async function onSubmit(event: React.FormEvent): Promise<void> {
     event.preventDefault();
@@ -82,19 +83,29 @@ export function SignInForm(): React.ReactElement {
             />
           </label>
 
-          <label className="flex flex-col gap-1.5">
+          <div className="flex flex-col gap-1.5">
             <span className="text-xs font-medium tracking-wide text-[var(--color-ink-muted)] uppercase">
               Password
             </span>
-            <input
-              type="password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              required
-              autoComplete="current-password"
-              className="rounded-lg border border-[var(--color-line-strong)] bg-[var(--color-surface)] px-3 py-2 text-sm text-[var(--color-ink)] outline-none focus:border-[var(--color-brand)] focus:ring-2 focus:ring-[var(--color-brand)]/20"
-            />
-          </label>
+            <div className="relative">
+              <input
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                required
+                autoComplete="current-password"
+                className="w-full rounded-lg border border-[var(--color-line-strong)] bg-[var(--color-surface)] px-3 py-2 pr-9 text-sm text-[var(--color-ink)] outline-none focus:border-[var(--color-brand)] focus:ring-2 focus:ring-[var(--color-brand)]/20"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((v) => !v)}
+                className="absolute inset-y-0 right-0 flex items-center px-2.5 text-[var(--color-ink-muted)] hover:text-[var(--color-ink)]"
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+              >
+                {showPassword ? <EyeOff size={15} aria-hidden /> : <Eye size={15} aria-hidden />}
+              </button>
+            </div>
+          </div>
 
           <button
             type="submit"
