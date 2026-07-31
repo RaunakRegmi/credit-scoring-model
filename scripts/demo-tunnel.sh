@@ -31,6 +31,13 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
+# Which host ports the stack is published on. These mirror the compose defaults, and both must
+# agree with it — the tunnels point at the *host* side of the port mapping, not the container's.
+readonly API_HOST_PORT="${API_HOST_PORT:-4000}"
+readonly WEB_HOST_PORT="${WEB_HOST_PORT:-3000}"
+readonly API_LOCAL="http://localhost:${API_HOST_PORT}"
+readonly WEB_LOCAL="http://localhost:${WEB_HOST_PORT}"
+
 readonly LOG_DIR="${TMPDIR:-/tmp}/aics-tunnel-$$"
 readonly API_LOG="$LOG_DIR/api.log"
 readonly WEB_LOG="$LOG_DIR/web.log"
@@ -44,7 +51,7 @@ info() { printf '  %s\n' "$1"; }
 warn() { printf '\033[33m  %s\033[0m\n' "$1"; }
 fail() { printf '\033[31m  %s\033[0m\n' "$1" >&2; exit 1; }
 
-readonly RESTORE_CMD="CORS_ORIGINS='http://localhost:3000' NEXT_PUBLIC_API_URL='http://localhost:4000' docker compose up -d --build api web"
+readonly RESTORE_CMD="CORS_ORIGINS='$WEB_LOCAL' NEXT_PUBLIC_API_URL='$API_LOCAL' docker compose up -d --build api web"
 
 CLEANED_UP=0
 
@@ -63,17 +70,17 @@ cleanup() {
   done
   # Belt and braces: a cloudflared that outlives this script leaves a public URL pointing at a
   # stack that has been reconfigured out from under it.
-  pkill -f 'cloudflared tunnel --url http://localhost:4000' 2>/dev/null || true
-  pkill -f 'cloudflared tunnel --url http://localhost:3000' 2>/dev/null || true
+  pkill -f "cloudflared tunnel --url $API_LOCAL" 2>/dev/null || true
+  pkill -f "cloudflared tunnel --url $WEB_LOCAL" 2>/dev/null || true
   info 'Tunnels closed.'
 
   # Put the stack back on localhost. Without this the containers keep a bundle baked against a
   # tunnel URL that no longer resolves, and local development silently stops working — the
   # dashboard loads and every request fails.
   info 'Restoring the stack to localhost (this rebuilds the dashboard, ~30s)...'
-  if CORS_ORIGINS='http://localhost:3000' NEXT_PUBLIC_API_URL='http://localhost:4000' \
+  if CORS_ORIGINS="$WEB_LOCAL" NEXT_PUBLIC_API_URL="$API_LOCAL" \
        docker compose up -d --build api web >/dev/null 2>&1; then
-    info 'Done. http://localhost:3000 works again.'
+    info "Done. $WEB_LOCAL works again."
   else
     warn 'Restore failed. Interrupting a rebuild can leave a half-created container behind.'
     warn 'Recover with:'
@@ -121,9 +128,9 @@ if ! docker compose ps --status running --services 2>/dev/null | grep -q '^api$'
   sleep 12
 fi
 
-curl -sf --max-time 5 http://localhost:4000/healthz >/dev/null \
-  || fail 'The API is not answering on localhost:4000. Check: docker compose logs api'
-info 'API healthy on localhost:4000'
+curl -sf --max-time 5 "$API_LOCAL/healthz" >/dev/null \
+  || fail "The API is not answering on $API_LOCAL. Check: docker compose logs api"
+info "API healthy on $API_LOCAL"
 
 # ---------------------------------------------------------------------------
 # Tunnels
@@ -149,12 +156,12 @@ wait_for_url() {
 printf '\n'
 bold 'Opening tunnels'
 
-cloudflared tunnel --url http://localhost:4000 --no-autoupdate >"$API_LOG" 2>&1 &
+cloudflared tunnel --url "$API_LOCAL" --no-autoupdate >"$API_LOG" 2>&1 &
 API_TUNNEL_PID=$!
 API_URL=$(wait_for_url "$API_LOG" 'API') || fail 'Could not open the API tunnel.'
 info "API      $API_URL"
 
-cloudflared tunnel --url http://localhost:3000 --no-autoupdate >"$WEB_LOG" 2>&1 &
+cloudflared tunnel --url "$WEB_LOCAL" --no-autoupdate >"$WEB_LOG" 2>&1 &
 WEB_TUNNEL_PID=$!
 WEB_URL=$(wait_for_url "$WEB_LOG" 'dashboard') || fail 'Could not open the dashboard tunnel.'
 info "Dashboard $WEB_URL"
@@ -169,7 +176,7 @@ info 'The dashboard bundle inlines the API URL at build time, so this step is a 
 
 # Both containers in one invocation: the API needs the dashboard's origin for CORS, the dashboard
 # needs the API's origin baked in. Localhost stays allowed so you can keep using it yourself.
-CORS_ORIGINS="$WEB_URL,http://localhost:3000" \
+CORS_ORIGINS="$WEB_URL,$WEB_LOCAL" \
 NEXT_PUBLIC_API_URL="$API_URL" \
   docker compose up -d --build api web
 

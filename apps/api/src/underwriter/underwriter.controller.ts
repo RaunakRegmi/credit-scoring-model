@@ -18,8 +18,10 @@ import {
 } from '@nestjs/common';
 import {
   CAN_REVIEW_APPLICATIONS,
+  CAN_VIEW_AUDIT,
   submitReviewSchema,
   type CreditAssessmentResult,
+  type DecisionHistoryPage,
   type QueuePage,
   type ReviewRecord,
 } from '@aics/contracts';
@@ -62,6 +64,30 @@ export class UnderwriterController {
       });
     }
     return this.underwriter.queue(parsed.data);
+  }
+
+  /**
+   * Decided applications, newest first — oversight, not work.
+   *
+   * Narrower than the queue on purpose. Reading the queue is broad because anyone who might act
+   * on a referral needs to see it; reading the decision history is `CAN_VIEW_AUDIT`, because
+   * examining decisions already taken is an oversight function (compliance, credit management,
+   * administration) rather than part of underwriting.
+   */
+  @Roles(...CAN_VIEW_AUDIT)
+  @Get('decisions')
+  async decisions(@Query() query: unknown): Promise<DecisionHistoryPage> {
+    const parsed = querySchema.safeParse(query ?? {});
+    if (!parsed.success) {
+      throw new BadRequestException({
+        message: 'Invalid decision history query',
+        issues: parsed.error.issues.map((issue) => ({
+          path: issue.path.join('.'),
+          message: issue.message,
+        })),
+      });
+    }
+    return this.underwriter.decisionHistory(parsed.data);
   }
 
   /**

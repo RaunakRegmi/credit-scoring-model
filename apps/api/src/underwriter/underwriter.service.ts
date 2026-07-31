@@ -33,6 +33,8 @@ import {
   REVIEW_SLA_HOURS,
   isLenientOverride,
   type Decision,
+  type DecisionHistoryItem,
+  type DecisionHistoryPage,
   type ProductType,
   type QueueItem,
   type QueuePage,
@@ -147,6 +149,101 @@ export class UnderwriterService {
     });
 
     return { items, total, limit, offset, breachedCount, slaHours: REVIEW_SLA_HOURS };
+  }
+
+  /* ====================================================================== */
+  /* Decision history                                                       */
+  /* ====================================================================== */
+
+  /**
+   * Every decided application, newest first — the oversight counterpart to the queue.
+   *
+   * The queue filters on `UNDER_REVIEW`, so an application disappears from it the moment it is
+   * decided. That is correct for a work queue and wrong for compliance, which needs to read a
+   * decision precisely because it has already been made. Restricted to `CAN_VIEW_AUDIT` at the
+   * controller.
+   *
+   * Includes engine-only decisions, not just reviewed ones. Most applications never reach the
+   * queue — they are decided at submission — and a history that omitted them would suggest the
+   * book is far smaller and far more human-mediated than it is.
+   */
+  async decisionHistory(query: QueueQuery = {}): Promise<DecisionHistoryPage> {
+    const limit = Math.min(Math.max(query.limit ?? DEFAULT_PAGE_SIZE, 1), MAX_PAGE_SIZE);
+    const offset = Math.max(query.offset ?? 0, 0);
+
+    const [total, applications, humanReviewedCount, coSignedCount] = await Promise.all([
+      this.prisma.db.loanApplication.count({ where: { status: 'DECIDED' } }),
+      this.prisma.db.loanApplication.findMany({
+        where: { status: 'DECIDED' },
+        // Decided-at, not created-at: the history is read in the order decisions were taken.
+        orderBy: [{ decidedAt: 'desc' }, { createdAt: 'desc' }],
+        skip: offset,
+        take: limit,
+        include: {
+          applicant: { select: { fullName: true } },
+          creditScores: { orderBy: { scoredAt: 'desc' }, take: 1 },
+          underwriterReviews: { orderBy: { reviewedAt: 'desc' }, take: 1 },
+        },
+      }),
+      this.prisma.db.loanApplication.count({
+        where: { status: 'DECIDED', underwriterReviews: { some: {} } },
+      }),
+      this.prisma.db.loanApplication.count({
+        where: { status: 'DECIDED', underwriterReviews: { some: { dualAuthById: { not: null } } } },
+      }),
+    ]);
+
+    const items: DecisionHistoryItem[] = applications.flatMap((application) => {
+      const score = application.creditScores[0];
+      // Same defect as the queue guards against: decided with no score means there is nothing to
+      // show. Logged and omitted rather than rendered as a row of zeros.
+      if (score === undefined) {
+        this.logger.error(
+          `Application ${application.arn} is DECIDED with no credit score; excluded from history`,
+        );
+        return [];
+      }
+
+      const row = application.underwriterReviews[0];
+      const review: ReviewRecord | null =
+        row === undefined
+          ? null
+          : {
+              id: row.id,
+              decision: row.decision,
+              systemDecision: row.systemDecision,
+              justification: row.justification,
+              overrodeModel: row.overrodeModel,
+              reviewerName: row.reviewerName,
+              reviewerRole: row.reviewerRole as StaffRole,
+              dualAuthByName: row.dualAuthByName,
+              dualAuthByRole: row.dualAuthByRole as StaffRole | null,
+              dualAuthAt: row.dualAuthAt?.toISOString() ?? null,
+              approvedLimitNpr: row.approvedLimitNpr === null ? null : Number(row.approvedLimitNpr),
+              reviewedAt: row.reviewedAt.toISOString(),
+            };
+
+      return [
+        {
+          applicationId: application.id,
+          arn: application.arn,
+          applicantName: application.applicant.fullName,
+          productType: application.productType,
+          requestedAmountNpr: Number(application.requestedAmountNpr),
+          compositeScore: Number(score.compositeScore),
+          riskBand: score.riskBand,
+          systemDecision: score.decision,
+          finalDecision: review?.decision ?? score.decision,
+          review,
+          overrodeEngine: review !== null && review.decision !== review.systemDecision,
+          // `decidedAt` is nullable in the schema; a DECIDED row without one is a data defect,
+          // and falling back to the score time keeps the column readable rather than empty.
+          decidedAt: (application.decidedAt ?? score.scoredAt).toISOString(),
+        },
+      ];
+    });
+
+    return { items, total, limit, offset, humanReviewedCount, coSignedCount };
   }
 
   /** Review history for one application, newest first. */

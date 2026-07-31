@@ -35,7 +35,12 @@ export function ReviewForm({
   const systemDecision = assessment.decision;
   const engineLimit = assessment.offer?.approvedLimitNpr ?? 0;
 
-  const [decision, setDecision] = useState<Decision>('DECLINE');
+  // Defaults to what the engine decided, not to DECLINE. A reviewer agrees with the engine most
+  // of the time, so agreement should be the cheap action and disagreement the deliberate one —
+  // and pre-selecting the harshest outcome made the approval options read as absent. Nothing is
+  // recorded until submit, and every rule is enforced again server-side, so the default carries
+  // no authority of its own.
+  const [decision, setDecision] = useState<Decision>(systemDecision);
   const [justification, setJustification] = useState('');
   const [limitInput, setLimitInput] = useState('');
   const [dualAuthEmail, setDualAuthEmail] = useState('');

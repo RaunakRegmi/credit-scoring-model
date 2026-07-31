@@ -14,8 +14,15 @@
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ConflictException, ForbiddenException } from '@nestjs/common';
-import { CAN_REVIEW_APPLICATIONS, CAN_SECOND_AUTHORISE } from '@aics/contracts';
+import {
+  CAN_REVIEW_APPLICATIONS,
+  CAN_SECOND_AUTHORISE,
+  CAN_VIEW_AUDIT,
+  type StaffRole,
+} from '@aics/contracts';
 
+import { REQUIRED_ROLES_KEY } from '../src/auth/auth.decorators';
+import { UnderwriterController } from '../src/underwriter/underwriter.controller';
 import { UnderwriterService } from '../src/underwriter/underwriter.service';
 import type { AuthenticatedStaff } from '../src/auth/token.service';
 
@@ -429,5 +436,42 @@ describe('review preconditions', () => {
     expect(serialised).not.toContain('super-secret-co-signer-password');
     // The co-signer's identity IS recorded — that is the evidence the control was satisfied.
     expect(serialised).toContain(CREDIT_MANAGER.email);
+  });
+});
+
+/* -------------------------------------------------------------------------- */
+/* Decision history                                                            */
+/* -------------------------------------------------------------------------- */
+
+describe('decision history access', () => {
+  // Asserted against the route metadata rather than an HTTP round trip, matching how the rest of
+  // this file checks authority: the claim is about who the route admits, not about Nest's plumbing.
+  const requiredRoles = Reflect.getMetadata(
+    REQUIRED_ROLES_KEY,
+    UnderwriterController.prototype.decisions,
+  ) as readonly StaffRole[] | undefined;
+
+  it('restricts the decision history to the audit roles', () => {
+    expect(requiredRoles).toEqual(CAN_VIEW_AUDIT);
+  });
+
+  it('excludes both underwriting grades — reading past decisions is oversight, not underwriting', () => {
+    expect(requiredRoles).not.toContain('UNDERWRITER');
+    expect(requiredRoles).not.toContain('SENIOR_UNDERWRITER');
+  });
+
+  it('admits compliance, which can read every decision and record none', () => {
+    expect(requiredRoles).toContain('COMPLIANCE_OFFICER');
+    // The same officer is still barred from co-signing one. Oversight and approval stay disjoint.
+    expect(CAN_SECOND_AUTHORISE).not.toContain('COMPLIANCE_OFFICER');
+  });
+
+  it('leaves the queue itself broadly readable — only the history is narrowed', () => {
+    const queueRoles = Reflect.getMetadata(
+      REQUIRED_ROLES_KEY,
+      UnderwriterController.prototype.queue,
+    ) as readonly StaffRole[] | undefined;
+
+    expect(queueRoles).toBeUndefined();
   });
 });

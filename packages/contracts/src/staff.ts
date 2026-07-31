@@ -290,6 +290,50 @@ export interface ReviewRecord {
   readonly reviewedAt: string;
 }
 
+/* -------------------------------------------------------------------------- */
+/* Decision history wire format                                                */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * One decided application, as the oversight view renders it.
+ *
+ * Covers both routes to a decision, because a history that only showed the human ones would
+ * misrepresent the book: most applications are decided by the engine at submission and never
+ * reach the queue at all. `review` is null for those, and `finalDecision` is the engine's.
+ */
+export interface DecisionHistoryItem {
+  readonly applicationId: string;
+  readonly arn: string;
+  readonly applicantName: string;
+  readonly productType: string;
+  readonly requestedAmountNpr: number;
+
+  readonly compositeScore: number;
+  readonly riskBand: string;
+  /** What the engine decided. Retained even when a human overrode it. */
+  readonly systemDecision: Decision;
+  /** The decision that stands: the reviewer's where there was one, otherwise the engine's. */
+  readonly finalDecision: Decision;
+
+  /** The human review, or null where the engine decided alone. */
+  readonly review: ReviewRecord | null;
+  /** True when a human recorded something other than what the engine recommended. */
+  readonly overrodeEngine: boolean;
+
+  readonly decidedAt: string;
+}
+
+export interface DecisionHistoryPage {
+  readonly items: readonly DecisionHistoryItem[];
+  readonly total: number;
+  readonly limit: number;
+  readonly offset: number;
+  /** Across the whole history, not the page — how many a human decided. */
+  readonly humanReviewedCount: number;
+  /** Across the whole history — how many carry a SOP-004 co-signature. */
+  readonly coSignedCount: number;
+}
+
 export const submitReviewSchema = z.object({
   decision: z.enum(DECISIONS),
   justification: z.string().min(MIN_JUSTIFICATION_LENGTH).max(5000),

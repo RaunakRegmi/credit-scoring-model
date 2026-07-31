@@ -16,6 +16,7 @@ import type {
   CreateApplicationInput,
   CreateStaffInput,
   CreditAssessmentResult,
+  DecisionHistoryPage,
   DocumentType,
   LoginInput,
   LoginResult,
@@ -307,6 +308,18 @@ export async function getReviewQueue(
   const suffix = query.size === 0 ? '' : `?${query.toString()}`;
 
   return request<QueuePage>(`/api/underwriter/queue${suffix}`);
+}
+
+/** Decided applications. `CAN_VIEW_AUDIT` only — a 403 here is the access model working. */
+export async function getDecisionHistory(
+  params: { readonly limit?: number; readonly offset?: number } = {},
+): Promise<DecisionHistoryPage> {
+  const query = new URLSearchParams();
+  if (params.limit !== undefined) query.set('limit', String(params.limit));
+  if (params.offset !== undefined) query.set('offset', String(params.offset));
+  const suffix = query.size === 0 ? '' : `?${query.toString()}`;
+
+  return request<DecisionHistoryPage>(`/api/underwriter/decisions${suffix}`);
 }
 
 export interface ReferralDetail {

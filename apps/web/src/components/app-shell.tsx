@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import type { Route } from 'next';
 import { useQuery } from '@tanstack/react-query';
-import { ClipboardList, FilePlus2, Loader2, LogOut, Users } from 'lucide-react';
+import { Archive, ClipboardList, FilePlus2, Loader2, LogOut, Users } from 'lucide-react';
 import { CAN_MANAGE_STAFF, CAN_REVIEW_APPLICATIONS, CAN_VIEW_AUDIT } from '@aics/contracts';
 
 import { AuthProvider, useAuth } from '@/components/auth-provider';
@@ -108,6 +108,16 @@ function TopBar(): React.ReactElement {
           >
             Review queue
           </NavLink>
+          {/* Oversight, not work: the queue empties as decisions are taken, this does not. */}
+          {can(CAN_VIEW_AUDIT) && (
+            <NavLink
+              href="/decisions"
+              active={pathname?.startsWith('/decisions') ?? false}
+              Icon={Archive}
+            >
+              Decisions
+            </NavLink>
+          )}
           {/* Administrators manage accounts; compliance reads the same list for audit. */}
           {can([...CAN_MANAGE_STAFF, ...CAN_VIEW_AUDIT]) && (
             <NavLink

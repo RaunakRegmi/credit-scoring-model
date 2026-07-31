@@ -83,8 +83,10 @@ services:
       # listed here or every request is rejected before it reaches a handler.
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
       STORAGE_ROOT: /data/storage
+    # Host port is overridable so the stack can share a machine with another project already
+    # holding 4000. The container always listens on 4000; only the published port moves.
     ports:
-      - '4000:4000'
+      - '${API_HOST_PORT:-4000}:4000'
     volumes:
       # Uploaded documents, bind-mounted to ./storage on the host rather than a named volume.
       #
@@ -118,7 +120,7 @@ services:
       api:
         condition: service_healthy
     ports:
-      - '3000:3000'
+      - '${WEB_HOST_PORT:-3000}:3000'
 
 volumes:
   postgres-data:
