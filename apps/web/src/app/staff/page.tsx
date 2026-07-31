@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   AlertCircle,
+  Eye,
+  EyeOff,
   KeyRound,
   Loader2,
   Lock,
@@ -341,29 +343,13 @@ function StaffCard({
           </button>
 
           {resetting && (
-            <form
-              onSubmit={(event) => {
-                event.preventDefault();
-                reset.mutate();
-              }}
-              className="flex flex-col gap-2"
-            >
-              <input
-                type="password"
-                value={newPassword}
-                onChange={(event) => setNewPassword(event.target.value)}
-                autoComplete="new-password"
-                placeholder="New temporary password (12+)"
-                className="min-h-11 rounded-lg border border-[var(--color-line-strong)] bg-[var(--color-surface)] px-3 text-sm"
-              />
-              <button
-                type="submit"
-                disabled={newPassword.length < 12 || reset.isPending}
-                className="min-h-11 rounded-lg bg-[var(--color-brand)] px-3 text-sm font-semibold text-white disabled:opacity-50"
-              >
-                Reset and end all sessions
-              </button>
-            </form>
+            <ResetPasswordForm
+              value={newPassword}
+              onChange={setNewPassword}
+              onSubmit={() => reset.mutate()}
+              isPending={reset.isPending}
+              layout="stacked"
+            />
           )}
         </>
       )}
@@ -480,33 +466,13 @@ function StaffRow({
               </p>
             )}
             {resetting && (
-              <form
-                onSubmit={(event) => {
-                  event.preventDefault();
-                  reset.mutate();
-                }}
-                className="flex flex-wrap items-end gap-2"
-              >
-                <label className="flex flex-col gap-1">
-                  <span className="text-xs font-medium text-[var(--color-ink-muted)]">
-                    New temporary password (12+ characters)
-                  </span>
-                  <input
-                    type="password"
-                    value={newPassword}
-                    onChange={(event) => setNewPassword(event.target.value)}
-                    autoComplete="new-password"
-                    className="w-64 rounded-md border border-[var(--color-line-strong)] bg-[var(--color-surface)] px-2.5 py-1.5 text-sm outline-none focus:border-[var(--color-brand)]"
-                  />
-                </label>
-                <button
-                  type="submit"
-                  disabled={newPassword.length < 12 || reset.isPending}
-                  className="rounded-md bg-[var(--color-brand)] px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
-                >
-                  Reset and end all sessions
-                </button>
-              </form>
+              <ResetPasswordForm
+                value={newPassword}
+                onChange={setNewPassword}
+                onSubmit={() => reset.mutate()}
+                isPending={reset.isPending}
+                layout="inline"
+              />
             )}
           </td>
         </tr>
@@ -565,6 +531,70 @@ function Badge({
   );
 }
 
+function ResetPasswordForm({
+  value,
+  onChange,
+  onSubmit,
+  isPending,
+  layout,
+}: {
+  readonly value: string;
+  readonly onChange: (v: string) => void;
+  readonly onSubmit: () => void;
+  readonly isPending: boolean;
+  readonly layout: 'stacked' | 'inline';
+}): React.ReactElement {
+  const [show, setShow] = useState(false);
+
+  return (
+    <form
+      onSubmit={(event) => { event.preventDefault(); onSubmit(); }}
+      className={layout === 'inline' ? 'flex flex-wrap items-end gap-2' : 'flex flex-col gap-2'}
+    >
+      <div className={layout === 'inline' ? 'flex flex-col gap-1' : undefined}>
+        {layout === 'inline' && (
+          <span className="text-xs font-medium text-[var(--color-ink-muted)]">
+            New temporary password (12+ characters)
+          </span>
+        )}
+        <div className="relative">
+          <input
+            type={show ? 'text' : 'password'}
+            value={value}
+            onChange={(event) => onChange(event.target.value)}
+            autoComplete="new-password"
+            placeholder={layout === 'stacked' ? 'New temporary password (12+)' : undefined}
+            className={
+              layout === 'inline'
+                ? 'w-64 rounded-md border border-[var(--color-line-strong)] bg-[var(--color-surface)] px-2.5 py-1.5 pr-8 text-sm outline-none focus:border-[var(--color-brand)]'
+                : 'min-h-11 w-full rounded-lg border border-[var(--color-line-strong)] bg-[var(--color-surface)] px-3 pr-9 text-sm'
+            }
+          />
+          <button
+            type="button"
+            onClick={() => setShow((v) => !v)}
+            className="absolute inset-y-0 right-0 flex items-center px-2.5 text-[var(--color-ink-muted)] hover:text-[var(--color-ink)]"
+            aria-label={show ? 'Hide password' : 'Show password'}
+          >
+            {show ? <EyeOff size={14} aria-hidden /> : <Eye size={14} aria-hidden />}
+          </button>
+        </div>
+      </div>
+      <button
+        type="submit"
+        disabled={value.length < 12 || isPending}
+        className={
+          layout === 'inline'
+            ? 'rounded-md bg-[var(--color-brand)] px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50'
+            : 'min-h-11 rounded-lg bg-[var(--color-brand)] px-3 text-sm font-semibold text-white disabled:opacity-50'
+        }
+      >
+        Reset and end all sessions
+      </button>
+    </form>
+  );
+}
+
 function TextField({
   label,
   value,
@@ -576,20 +606,35 @@ function TextField({
   readonly onChange: (value: string) => void;
   readonly type?: 'text' | 'email' | 'password';
 }): React.ReactElement {
+  const [show, setShow] = useState(false);
+  const isPassword = type === 'password';
+
   return (
-    <label className="flex flex-col gap-1.5">
+    <div className="flex flex-col gap-1.5">
       <span className="text-xs font-medium tracking-wide text-[var(--color-ink-muted)] uppercase">
         {label}
       </span>
-      <input
-        type={type}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        required
-        autoComplete={type === 'password' ? 'new-password' : 'off'}
-        className="rounded-lg border border-[var(--color-line-strong)] bg-[var(--color-surface)] px-3 py-2 text-sm text-[var(--color-ink)] outline-none focus:border-[var(--color-brand)] focus:ring-2 focus:ring-[var(--color-brand)]/20"
-      />
-    </label>
+      <div className={isPassword ? 'relative' : undefined}>
+        <input
+          type={isPassword ? (show ? 'text' : 'password') : type}
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          required
+          autoComplete={isPassword ? 'new-password' : 'off'}
+          className={`w-full rounded-lg border border-[var(--color-line-strong)] bg-[var(--color-surface)] px-3 py-2 text-sm text-[var(--color-ink)] outline-none focus:border-[var(--color-brand)] focus:ring-2 focus:ring-[var(--color-brand)]/20${isPassword ? ' pr-9' : ''}`}
+        />
+        {isPassword && (
+          <button
+            type="button"
+            onClick={() => setShow((v) => !v)}
+            className="absolute inset-y-0 right-0 flex items-center px-2.5 text-[var(--color-ink-muted)] hover:text-[var(--color-ink)]"
+            aria-label={show ? 'Hide password' : 'Show password'}
+          >
+            {show ? <EyeOff size={15} aria-hidden /> : <Eye size={15} aria-hidden />}
+          </button>
+        )}
+      </div>
+    </div>
   );
 }
 
