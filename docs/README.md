@@ -98,6 +98,20 @@ loads and cannot sign in.
 The URL lives only as long as the script runs. **Synthetic data only** — this deployment has no WAF
 and no ingress you control; see [`docs/04-bank-deployment-readiness.md`](docs/04-bank-deployment-readiness.md) §2.
 
+### Permanent hosting
+
+When the link needs to outlive the terminal session — a supervisor or reviewer looking at it on
+their own time — see [`docs/06-deploying-to-railway.md`](docs/06-deploying-to-railway.md). All four
+services deploy from the existing Dockerfiles onto one Railway project, with managed Postgres and a
+volume for `storage/`.
+
+Railway rather than Vercel because two of the four services cannot be serverless: the API writes
+applicant documents to a persistent volume, and the ML image trains its seed model during the build
+and carries a dependency set well past any function size limit. §1 of that document records the
+reasoning. The same `NEXT_PUBLIC_API_URL` / `CORS_ORIGINS` circularity that `demo-tunnel.sh` solves
+with a rebuild is solved there by reference variables, since Railway assigns both domains before
+the first build runs.
+
 ### Local development
 
 Requires Node 22+, Python 3.12/3.13, PostgreSQL 16.
@@ -293,6 +307,8 @@ Then, for detail:
   NRB compliance posture, HA/DR
 - [`docs/05-running-and-credentials.md`](docs/05-running-and-credentials.md) — how to start the
   stack, the local demo logins and what each role can do, and a scene-by-scene demo script
+- [`docs/06-deploying-to-railway.md`](docs/06-deploying-to-railway.md) — hosting the full stack on
+  a permanent URL: why not Vercel, service-by-service setup, verification and troubleshooting
 
 ---
 

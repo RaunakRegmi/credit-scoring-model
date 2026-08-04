@@ -39,8 +39,11 @@ services:
       dockerfile: apps/ml/Dockerfile
     container_name: aics-ml
     restart: unless-stopped
+    # Host port is overridable for the same reason as the API's: 8000 is a common default and
+    # another project on the machine may already hold it. The API reaches this service at
+    # `http://ml:8000` over the compose network, so only direct host inspection is affected.
     ports:
-      - '8000:8000'
+      - '${ML_HOST_PORT:-8000}:8000'
     healthcheck:
       # /healthz, not /readyz: readiness reports 503 until a model artifact exists, and a fresh
       # image should come up and say so rather than be restarted in a loop.
